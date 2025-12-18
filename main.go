@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -266,6 +267,85 @@ func main() {
 		c.JSON(200, gin.H{
 			"muscles": muscles,
 			"count":   len(muscles),
+		})
+	})
+
+	r.GET("/exercises", func(c *gin.Context) {
+		// Use request context for query cancellation
+		ctx := c.Request.Context()
+
+		rows, err := db.QueryContext(ctx, `
+			SELECT id, version, created_when, created_by, modified_when, modified_by, name, type
+			FROM exercise
+			ORDER BY type, name
+		`)
+		if err != nil {
+			c.JSON(500, gin.H{"error": err.Error()})
+			return
+		}
+		defer rows.Close()
+
+		exercisesMap := make(map[int]*Exercise)
+		exerciseIDs := []int{}
+
+		for rows.Next() {
+			exercise, err := ScanExercise(rows)
+			if err != nil {
+				c.JSON(500, gin.H{"error": err.Error()})
+				return
+			}
+			exercisesMap[exercise.ID] = exercise
+			exerciseIDs = append(exerciseIDs, exercise.ID)
+		}
+
+		if err := rows.Err(); err != nil {
+			c.JSON(500, gin.H{"error": err.Error()})
+			return
+		}
+
+		// Get muscles for each exercise with percentages
+		if len(exerciseIDs) > 0 {
+			muscleRows, err := db.QueryContext(ctx, `
+				SELECT em.exercise_id, em.muscle_id, m.name, em.percentage, em.created_when, em.created_by
+				FROM exercise_muscle em
+				JOIN muscle m ON em.muscle_id = m.id
+				ORDER BY em.exercise_id, em.percentage DESC
+			`)
+			if err != nil {
+				c.JSON(500, gin.H{"error": err.Error()})
+				return
+			}
+			defer muscleRows.Close()
+
+			for muscleRows.Next() {
+				var em ExerciseMuscle
+				var createdWhen string
+				if err := muscleRows.Scan(&em.ExerciseID, &em.MuscleID, &em.MuscleName, &em.Percentage, &createdWhen, &em.CreatedBy); err != nil {
+					c.JSON(500, gin.H{"error": err.Error()})
+					return
+				}
+				em.CreatedWhen, _ = time.Parse("2006-01-02 15:04:05", createdWhen)
+				
+				if exercise, ok := exercisesMap[em.ExerciseID]; ok {
+					exercise.Muscles = append(exercise.Muscles, em)
+				}
+			}
+
+			if err := muscleRows.Err(); err != nil {
+				c.JSON(500, gin.H{"error": err.Error()})
+				return
+			}
+		}
+
+		// Convert map to slice
+		exercises := make([]Exercise, 0, len(exerciseIDs))
+		for _, id := range exerciseIDs {
+			exercises = append(exercises, *exercisesMap[id])
+		}
+
+		c.JSON(200, gin.H{
+			"exercises": exercises,
+			"count":     len(exercises),
 		})
 	})
 
