@@ -520,16 +520,6 @@ func main() {
 			return
 		}
 
-		// Validate total percentage equals 100
-		var totalPercentage float64
-		for _, m := range input.Muscles {
-			totalPercentage += m.Percentage
-		}
-		if totalPercentage != 100 {
-			c.JSON(400, gin.H{"error": fmt.Sprintf("Total muscle percentages must equal 100%%, got %.1f%%", totalPercentage)})
-			return
-		}
-
 		// Start transaction
 		tx, err := db.BeginTx(ctx, nil)
 		if err != nil {

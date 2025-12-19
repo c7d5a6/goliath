@@ -89,10 +89,6 @@ export default function AddExercise() {
       setError('At least one muscle must be selected')
       return
     }
-    if (totalPercentage() !== 100) {
-      setError(`Total percentage must equal 100%, currently ${totalPercentage()}%`)
-      return
-    }
 
     setIsSubmitting(true)
     
@@ -317,7 +313,6 @@ export default function AddExercise() {
             Cancel
           </button>
         </div>
-      </form>
     </div>
   )
 }
