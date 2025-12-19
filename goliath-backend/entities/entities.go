@@ -80,6 +80,18 @@ type ExerciseMuscle struct {
 	CreatedBy   *string   `json:"created_by" db:"created_by"`
 }
 
+// User represents a user in the system
+type User struct {
+	ID           int     `json:"id"`
+	Version      int     `json:"version"`
+	CreatedWhen  string  `json:"created_when"`
+	CreatedBy    *string `json:"created_by"`
+	ModifiedWhen string  `json:"modified_when"`
+	ModifiedBy   *string `json:"modified_by"`
+	Email        string  `json:"email"`
+	Role         string  `json:"role"`
+}
+
 // ScanBaseEntity is a helper to scan common fields from database rows
 func ScanBaseEntity(row interface {
 	Scan(dest ...interface{}) error

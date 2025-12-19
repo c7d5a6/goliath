@@ -26,14 +26,17 @@ func main() {
 	exerciseAreaRepo := repositories.NewExerciseAreaRepository(db)
 	muscleRepo := repositories.NewMuscleRepository(db)
 	exerciseRepo := repositories.NewExerciseRepository(db)
+	userRepo := repositories.NewUserRepository(db)
 
 	// Initialize services
 	muscleService := services.NewMuscleService(muscleRepo, muscleGroupRepo, regionRepo, exerciseAreaRepo)
 	exerciseService := services.NewExerciseService(exerciseRepo)
+	userService := services.NewUserService(userRepo)
 
 	// Initialize handlers
 	muscleHandlers := handlers.NewMuscleHandlers(muscleService)
 	exerciseHandlers := handlers.NewExerciseHandlers(exerciseService)
+	userHandlers := handlers.NewUserHandlers(userService)
 
 	// Setup router
 	r := gin.Default()
@@ -82,6 +85,9 @@ func main() {
 		// Exercise-related routes
 		public.GET("/exercises", exerciseHandlers.GetExercises)
 		public.GET("/exercise-types", exerciseHandlers.GetExerciseTypes)
+
+		// User-related routes
+		public.GET("/users", userHandlers.GetUsers)
 	}
 
 	// Protected routes - authentication required (when you want to enable auth)

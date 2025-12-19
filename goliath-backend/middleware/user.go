@@ -5,19 +5,13 @@ import (
 	"database/sql"
 	"log"
 
+	"goliath/entities"
+
 	"github.com/gin-gonic/gin"
 )
 
 // UserContextKey is the context key for the full user object
 const UserContextKey ContextKey = "user"
-
-// User represents a user in the system (dummy struct for now)
-type User struct {
-	ID       int    `json:"id"`
-	Email    string `json:"email"`
-	Username string `json:"username"`
-	FullName string `json:"full_name"`
-}
 
 // UserLoader middleware loads user details from database based on JWT claims
 // This is a dummy implementation until the user table is created
@@ -50,37 +44,37 @@ func UserLoader(db *sql.DB) gin.HandlerFunc {
 }
 
 // loadUserFromDB loads a user from the database
-// This is a DUMMY implementation - returns a mock user
-// TODO: Replace with actual database query when user table exists
-func loadUserFromDB(ctx context.Context, db *sql.DB, userID int) (*User, error) {
-	// DUMMY IMPLEMENTATION
-	// In real implementation, this would query the database:
-	// var user User
-	// err := db.QueryRowContext(ctx, 
-	//     "SELECT id, email, username, full_name FROM users WHERE id = ?", 
-	//     userID,
-	// ).Scan(&user.ID, &user.Email, &user.Username, &user.FullName)
-	// if err != nil {
-	//     return nil, err
-	// }
-	// return &user, nil
-
-	// For now, return a dummy user
-	email, _ := GetUserEmailFromContext(ctx)
-	user := &User{
-		ID:       userID,
-		Email:    email,
-		Username: "dummy_user",
-		FullName: "Dummy User",
+func loadUserFromDB(ctx context.Context, db *sql.DB, userID int) (*entities.User, error) {
+	var user entities.User
+	err := db.QueryRowContext(ctx, `
+		SELECT id, version, created_when, created_by, modified_when, modified_by, email, role 
+		FROM user 
+		WHERE id = ?
+	`, userID).Scan(
+		&user.ID,
+		&user.Version,
+		&user.CreatedWhen,
+		&user.CreatedBy,
+		&user.ModifiedWhen,
+		&user.ModifiedBy,
+		&user.Email,
+		&user.Role,
+	)
+	
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil // User not found
+		}
+		return nil, err
 	}
 	
-	log.Printf("Loaded dummy user: ID=%d, Email=%s", user.ID, user.Email)
-	return user, nil
+	log.Printf("Loaded user: ID=%d, Email=%s, Role=%s", user.ID, user.Email, user.Role)
+	return &user, nil
 }
 
 // GetUserFromContext retrieves the user from context
-func GetUserFromContext(ctx context.Context) (*User, bool) {
-	user, ok := ctx.Value(UserContextKey).(*User)
+func GetUserFromContext(ctx context.Context) (*entities.User, bool) {
+	user, ok := ctx.Value(UserContextKey).(*entities.User)
 	return user, ok
 }
 
@@ -95,5 +89,40 @@ func RequireAuth() gin.HandlerFunc {
 		}
 		c.Next()
 	}
+}
+
+// RequireRole middleware ensures a user has a specific role
+func RequireRole(role string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		user, hasUser := GetUserFromContext(c.Request.Context())
+		if !hasUser {
+			c.JSON(401, gin.H{"error": "Authentication required"})
+			c.Abort()
+			return
+		}
+		
+		if user.Role != role {
+			c.JSON(403, gin.H{"error": "Insufficient permissions"})
+			c.Abort()
+			return
+		}
+		
+		c.Next()
+	}
+}
+
+// RequireAdmin middleware ensures a user has admin role
+func RequireAdmin() gin.HandlerFunc {
+	return RequireRole("ADMIN")
+}
+
+// IsAdmin checks if a user has admin role
+func IsAdmin(user *entities.User) bool {
+	return user != nil && user.Role == "ADMIN"
+}
+
+// IsUser checks if a user has user role
+func IsUser(user *entities.User) bool {
+	return user != nil && user.Role == "USER"
 }
 
