@@ -1,15 +1,17 @@
 package main
 
 import (
+	"context"
 	"log"
-	"os"
 
 	"goliath/handlers"
 	"goliath/middleware"
 	"goliath/repositories"
 	"goliath/services"
 
+	firebase "firebase.google.com/go/v4"
 	"github.com/gin-gonic/gin"
+	"google.golang.org/api/option"
 )
 
 func main() {
@@ -19,6 +21,20 @@ func main() {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
 	defer db.Close()
+
+	// Initialize Firebase
+	opt := option.WithCredentialsFile("./goliath-firebase.json")
+	app, err := firebase.NewApp(context.Background(), nil, opt)
+	if err != nil {
+		log.Fatalf("Error initializing Firebase app: %v", err)
+	}
+
+	// Get Firebase Auth client
+	authClient, err := app.Auth(context.Background())
+	if err != nil {
+		log.Fatalf("Error getting Firebase Auth client: %v", err)
+	}
+	log.Println("Firebase initialized successfully")
 
 	// Initialize repositories
 	regionRepo := repositories.NewRegionRepository(db)
@@ -41,21 +57,14 @@ func main() {
 	// Setup router
 	r := gin.Default()
 
-	// Get JWT secret from environment or use default for development
-	jwtSecret := os.Getenv("JWT_SECRET")
-	if jwtSecret == "" {
-		jwtSecret = "your-secret-key-change-this-in-production"
-		log.Println("WARNING: Using default JWT secret. Set JWT_SECRET environment variable in production!")
-	}
-
 	// Apply global middleware in order:
 	// 1. CORS - handle cross-origin requests
 	r.Use(middleware.CORS())
 	
-	// 2. JWT (optional) - extract user info from token if present
+	// 2. Firebase JWT (optional) - extract user info from token if present
 	r.Use(middleware.JWT(middleware.JWTConfig{
-		SecretKey: jwtSecret,
-		Required:  false, // Allow requests without JWT
+		AuthClient: authClient,
+		Required:   false, // Allow requests without JWT
 	}))
 	
 	// 3. User Loader - load full user details if JWT was present

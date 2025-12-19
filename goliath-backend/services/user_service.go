@@ -34,3 +34,8 @@ func (s *UserService) GetUserByEmail(ctx context.Context, email string) (*entiti
 	return s.userRepo.GetByEmail(ctx, email)
 }
 
+// GetUserByFirebaseUID retrieves a user by Firebase UID
+func (s *UserService) GetUserByFirebaseUID(ctx context.Context, firebaseUID string) (*entities.User, error) {
+	return s.userRepo.GetByFirebaseUID(ctx, firebaseUID)
+}
+

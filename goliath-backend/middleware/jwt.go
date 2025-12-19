@@ -2,30 +2,31 @@ package middleware
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
+	"firebase.google.com/go/v4/auth"
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 )
 
 // ContextKey is a custom type for context keys to avoid collisions
 type ContextKey string
 
 const (
-	// UserIDKey is the context key for user ID
+	// UserIDKey is the context key for user ID (Firebase UID)
 	UserIDKey ContextKey = "userID"
 	// UserEmailKey is the context key for user email
 	UserEmailKey ContextKey = "userEmail"
+	// FirebaseUIDKey is the context key for Firebase UID
+	FirebaseUIDKey ContextKey = "firebaseUID"
 )
 
-// JWTConfig holds JWT configuration
+// JWTConfig holds JWT configuration for Firebase
 type JWTConfig struct {
-	SecretKey string
-	Required  bool // If true, request fails without valid JWT
+	AuthClient *auth.Client
+	Required   bool // If true, request fails without valid JWT
 }
 
-// JWT middleware validates JWT tokens and adds user info to context
+// JWT middleware validates Firebase JWT tokens and adds user info to context
 func JWT(config JWTConfig) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Get token from Authorization header
@@ -57,18 +58,11 @@ func JWT(config JWTConfig) gin.HandlerFunc {
 
 		tokenString := tokenParts[1]
 
-		// Parse and validate token
-		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-			// Validate signing method
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-			}
-			return []byte(config.SecretKey), nil
-		})
-
+		// Verify Firebase token
+		token, err := config.AuthClient.VerifyIDToken(c.Request.Context(), tokenString)
 		if err != nil {
 			if config.Required {
-				c.JSON(401, gin.H{"error": "Invalid or expired token"})
+				c.JSON(401, gin.H{"error": "Invalid or expired Firebase token"})
 				c.Abort()
 				return
 			}
@@ -76,24 +70,20 @@ func JWT(config JWTConfig) gin.HandlerFunc {
 			return
 		}
 
-		// Extract claims
-		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-			// Add user info to context
-			if userID, ok := claims["user_id"].(float64); ok {
-				ctx := context.WithValue(c.Request.Context(), UserIDKey, int(userID))
-				c.Request = c.Request.WithContext(ctx)
-			}
-			
-			if email, ok := claims["email"].(string); ok {
-				ctx := context.WithValue(c.Request.Context(), UserEmailKey, email)
-				c.Request = c.Request.WithContext(ctx)
-			}
-		} else {
-			if config.Required {
-				c.JSON(401, gin.H{"error": "Invalid token claims"})
-				c.Abort()
-				return
-			}
+		// Add Firebase UID to context
+		ctx := context.WithValue(c.Request.Context(), FirebaseUIDKey, token.UID)
+		c.Request = c.Request.WithContext(ctx)
+
+		// Add email to context if available
+		if email, ok := token.Claims["email"].(string); ok {
+			ctx = context.WithValue(c.Request.Context(), UserEmailKey, email)
+			c.Request = c.Request.WithContext(ctx)
+		}
+
+		// If user_id custom claim exists, add it to context
+		if userID, ok := token.Claims["user_id"].(float64); ok {
+			ctx = context.WithValue(c.Request.Context(), UserIDKey, int(userID))
+			c.Request = c.Request.WithContext(ctx)
 		}
 
 		c.Next()
@@ -110,5 +100,11 @@ func GetUserIDFromContext(ctx context.Context) (int, bool) {
 func GetUserEmailFromContext(ctx context.Context) (string, bool) {
 	email, ok := ctx.Value(UserEmailKey).(string)
 	return email, ok
+}
+
+// GetFirebaseUIDFromContext retrieves Firebase UID from context
+func GetFirebaseUIDFromContext(ctx context.Context) (string, bool) {
+	uid, ok := ctx.Value(FirebaseUIDKey).(string)
+	return uid, ok
 }
 

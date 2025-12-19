@@ -90,6 +90,7 @@ type User struct {
 	ModifiedBy   *string `json:"modified_by"`
 	Email        string  `json:"email"`
 	Role         string  `json:"role"`
+	FirebaseUID  *string `json:"firebase_uid,omitempty"`
 }
 
 // ScanBaseEntity is a helper to scan common fields from database rows

@@ -13,24 +13,30 @@ import (
 // UserContextKey is the context key for the full user object
 const UserContextKey ContextKey = "user"
 
-// UserLoader middleware loads user details from database based on JWT claims
-// This is a dummy implementation until the user table is created
+// UserLoader middleware loads user details from database based on Firebase UID
 func UserLoader(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Try to get user ID from context (set by JWT middleware)
-		userID, hasUserID := GetUserIDFromContext(c.Request.Context())
+		// Try to get Firebase UID from context (set by JWT middleware)
+		firebaseUID, hasUID := GetFirebaseUIDFromContext(c.Request.Context())
 		
-		if !hasUserID {
-			// No user ID in context, skip loading
+		if !hasUID {
+			// No Firebase UID in context, skip loading
 			c.Next()
 			return
 		}
 
-		// Load user from database
-		user, err := loadUserFromDB(c.Request.Context(), db, userID)
+		// Load user from database by Firebase UID
+		user, err := loadUserByFirebaseUID(c.Request.Context(), db, firebaseUID)
 		if err != nil {
-			log.Printf("Failed to load user %d: %v", userID, err)
+			log.Printf("Failed to load user with Firebase UID %s: %v", firebaseUID, err)
 			// Don't fail the request, just continue without user details
+			c.Next()
+			return
+		}
+
+		if user == nil {
+			// User not found in database
+			log.Printf("User not found for Firebase UID: %s", firebaseUID)
 			c.Next()
 			return
 		}
@@ -43,14 +49,14 @@ func UserLoader(db *sql.DB) gin.HandlerFunc {
 	}
 }
 
-// loadUserFromDB loads a user from the database
-func loadUserFromDB(ctx context.Context, db *sql.DB, userID int) (*entities.User, error) {
+// loadUserByFirebaseUID loads a user from the database by Firebase UID
+func loadUserByFirebaseUID(ctx context.Context, db *sql.DB, firebaseUID string) (*entities.User, error) {
 	var user entities.User
 	err := db.QueryRowContext(ctx, `
-		SELECT id, version, created_when, created_by, modified_when, modified_by, email, role 
+		SELECT id, version, created_when, created_by, modified_when, modified_by, email, role, firebase_uid
 		FROM user 
-		WHERE id = ?
-	`, userID).Scan(
+		WHERE firebase_uid = ?
+	`, firebaseUID).Scan(
 		&user.ID,
 		&user.Version,
 		&user.CreatedWhen,
@@ -59,6 +65,7 @@ func loadUserFromDB(ctx context.Context, db *sql.DB, userID int) (*entities.User
 		&user.ModifiedBy,
 		&user.Email,
 		&user.Role,
+		&user.FirebaseUID,
 	)
 	
 	if err != nil {
@@ -68,7 +75,7 @@ func loadUserFromDB(ctx context.Context, db *sql.DB, userID int) (*entities.User
 		return nil, err
 	}
 	
-	log.Printf("Loaded user: ID=%d, Email=%s, Role=%s", user.ID, user.Email, user.Role)
+	log.Printf("Loaded user: ID=%d, Email=%s, Role=%s, Firebase UID=%s", user.ID, user.Email, user.Role, firebaseUID)
 	return &user, nil
 }
 

@@ -20,7 +20,7 @@ func NewUserRepository(db *sql.DB) *UserRepository {
 // GetAll retrieves all users from the database
 func (r *UserRepository) GetAll(ctx context.Context) ([]entities.User, error) {
 	rows, err := r.db.QueryContext(ctx, `
-		SELECT id, version, created_when, created_by, modified_when, modified_by, email, role
+		SELECT id, version, created_when, created_by, modified_when, modified_by, email, role, firebase_uid
 		FROM user
 		ORDER BY created_when DESC
 	`)
@@ -41,6 +41,7 @@ func (r *UserRepository) GetAll(ctx context.Context) ([]entities.User, error) {
 			&user.ModifiedBy,
 			&user.Email,
 			&user.Role,
+			&user.FirebaseUID,
 		); err != nil {
 			return nil, err
 		}
@@ -58,7 +59,7 @@ func (r *UserRepository) GetAll(ctx context.Context) ([]entities.User, error) {
 func (r *UserRepository) GetByID(ctx context.Context, id int) (*entities.User, error) {
 	var user entities.User
 	err := r.db.QueryRowContext(ctx, `
-		SELECT id, version, created_when, created_by, modified_when, modified_by, email, role
+		SELECT id, version, created_when, created_by, modified_when, modified_by, email, role, firebase_uid
 		FROM user
 		WHERE id = ?
 	`, id).Scan(
@@ -70,6 +71,7 @@ func (r *UserRepository) GetByID(ctx context.Context, id int) (*entities.User, e
 		&user.ModifiedBy,
 		&user.Email,
 		&user.Role,
+		&user.FirebaseUID,
 	)
 
 	if err != nil {
@@ -86,7 +88,7 @@ func (r *UserRepository) GetByID(ctx context.Context, id int) (*entities.User, e
 func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*entities.User, error) {
 	var user entities.User
 	err := r.db.QueryRowContext(ctx, `
-		SELECT id, version, created_when, created_by, modified_when, modified_by, email, role
+		SELECT id, version, created_when, created_by, modified_when, modified_by, email, role, firebase_uid
 		FROM user
 		WHERE email = ?
 	`, email).Scan(
@@ -98,6 +100,36 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*entitie
 		&user.ModifiedBy,
 		&user.Email,
 		&user.Role,
+		&user.FirebaseUID,
+	)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+// GetByFirebaseUID retrieves a user by Firebase UID
+func (r *UserRepository) GetByFirebaseUID(ctx context.Context, firebaseUID string) (*entities.User, error) {
+	var user entities.User
+	err := r.db.QueryRowContext(ctx, `
+		SELECT id, version, created_when, created_by, modified_when, modified_by, email, role, firebase_uid
+		FROM user
+		WHERE firebase_uid = ?
+	`, firebaseUID).Scan(
+		&user.ID,
+		&user.Version,
+		&user.CreatedWhen,
+		&user.CreatedBy,
+		&user.ModifiedWhen,
+		&user.ModifiedBy,
+		&user.Email,
+		&user.Role,
+		&user.FirebaseUID,
 	)
 
 	if err != nil {
