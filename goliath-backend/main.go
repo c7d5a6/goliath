@@ -464,6 +464,121 @@ func main() {
 		c.String(200, result)
 	})
 
+	r.GET("/exercise-types", func(c *gin.Context) {
+		types := []string{
+			string(ExerciseTypeReps),
+			string(ExerciseTypeEccentric),
+			string(ExerciseTypeIsometric),
+		}
+		c.JSON(200, gin.H{
+			"types": types,
+		})
+	})
+
+	r.POST("/exercises", func(c *gin.Context) {
+		ctx := c.Request.Context()
+
+		type MuscleInput struct {
+			MuscleID   int     `json:"muscle_id" binding:"required"`
+			Percentage float64 `json:"percentage" binding:"required,min=1,max=100"`
+		}
+
+		type CreateExerciseInput struct {
+			Name    string        `json:"name" binding:"required,min=1"`
+			Type    string        `json:"type" binding:"required"`
+			Muscles []MuscleInput `json:"muscles" binding:"required,min=1,dive"`
+		}
+
+		var input CreateExerciseInput
+		if err := c.ShouldBindJSON(&input); err != nil {
+			c.JSON(400, gin.H{"error": err.Error()})
+			return
+		}
+
+		// Validate exercise type
+		validType := false
+		for _, t := range []string{string(ExerciseTypeReps), string(ExerciseTypeEccentric), string(ExerciseTypeIsometric)} {
+			if input.Type == t {
+				validType = true
+				break
+			}
+		}
+		if !validType {
+			c.JSON(400, gin.H{"error": "Invalid exercise type"})
+			return
+		}
+
+		// Check if exercise name already exists
+		var count int
+		err := db.QueryRowContext(ctx, "SELECT COUNT(*) FROM exercise WHERE LOWER(name) = LOWER(?)", input.Name).Scan(&count)
+		if err != nil {
+			c.JSON(500, gin.H{"error": "Database error: " + err.Error()})
+			return
+		}
+		if count > 0 {
+			c.JSON(409, gin.H{"error": "Exercise with this name already exists"})
+			return
+		}
+
+		// Validate total percentage equals 100
+		var totalPercentage float64
+		for _, m := range input.Muscles {
+			totalPercentage += m.Percentage
+		}
+		if totalPercentage != 100 {
+			c.JSON(400, gin.H{"error": fmt.Sprintf("Total muscle percentages must equal 100%%, got %.1f%%", totalPercentage)})
+			return
+		}
+
+		// Start transaction
+		tx, err := db.BeginTx(ctx, nil)
+		if err != nil {
+			c.JSON(500, gin.H{"error": "Failed to start transaction: " + err.Error()})
+			return
+		}
+		defer tx.Rollback()
+
+		// Insert exercise
+		now := time.Now().Format("2006-01-02 15:04:05")
+		result, err := tx.ExecContext(ctx, `
+			INSERT INTO exercise (version, created_when, modified_when, name, type)
+			VALUES (1, ?, ?, ?, ?)
+		`, now, now, input.Name, input.Type)
+		if err != nil {
+			c.JSON(500, gin.H{"error": "Failed to create exercise: " + err.Error()})
+			return
+		}
+
+		exerciseID, err := result.LastInsertId()
+		if err != nil {
+			c.JSON(500, gin.H{"error": "Failed to get exercise ID: " + err.Error()})
+			return
+		}
+
+		// Insert exercise muscles
+		for _, m := range input.Muscles {
+			_, err := tx.ExecContext(ctx, `
+				INSERT INTO exercise_muscle (exercise_id, muscle_id, percentage, created_when)
+				VALUES (?, ?, ?, ?)
+			`, exerciseID, m.MuscleID, m.Percentage, now)
+			if err != nil {
+				c.JSON(500, gin.H{"error": "Failed to add muscle to exercise: " + err.Error()})
+				return
+			}
+		}
+
+		// Commit transaction
+		if err := tx.Commit(); err != nil {
+			c.JSON(500, gin.H{"error": "Failed to commit transaction: " + err.Error()})
+			return
+		}
+
+		c.JSON(201, gin.H{
+			"id":      exerciseID,
+			"message": "Exercise created successfully",
+		})
+	})
+
 	log.Println("Server starting on :8080...")
 	if err := r.Run(":8080"); err != nil {
 		log.Fatalf("Failed to start server: %v", err)

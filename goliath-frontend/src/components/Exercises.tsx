@@ -1,4 +1,5 @@
 import { createSignal, createResource, For, Show, createMemo } from 'solid-js'
+import { A } from '@solidjs/router'
 
 interface ExerciseMuscle {
   muscle_id: number
@@ -58,7 +59,7 @@ export default function Exercises() {
   })
 
   return (
-    <>
+    <div class="relative">
       {/* Stats */}
       <Show when={data()}>
         <div class="flex gap-3 mb-6 flex-wrap">
@@ -240,7 +241,18 @@ export default function Exercises() {
           </Show>
         </Show>
       </div>
-    </>
+
+      {/* Floating Action Button */}
+      <A
+        href="/exercises/new"
+        class="fixed bottom-6 right-6 w-14 h-14 bg-accent-500 text-white rounded-full shadow-lg
+               flex items-center justify-center text-2xl hover:bg-accent-600 hover:scale-110
+               active:scale-95 transition-all z-50"
+        title="Add new exercise"
+      >
+        ➕
+      </A>
+    </div>
   )
 }
 

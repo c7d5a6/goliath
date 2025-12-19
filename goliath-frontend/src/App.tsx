@@ -1,6 +1,7 @@
 import { Router, Route, A } from '@solidjs/router'
 import Muscles from './components/Muscles'
 import Exercises from './components/Exercises'
+import AddExercise from './components/AddExercise'
 
 function Layout(props: any) {
   return (
@@ -16,7 +17,7 @@ function Layout(props: any) {
         </p>
 
         {/* Navigation */}
-        <nav class="flex gap-2 mt-4">
+        <nav class="flex gap-2 mt-4 flex-wrap">
           <A
             href="/"
             class="px-4 py-2 rounded-lg text-sm font-medium transition-all"
@@ -33,6 +34,14 @@ function Layout(props: any) {
             inactiveClass="bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
           >
             🏋️ Exercises
+          </A>
+          <A
+            href="/exercises/new"
+            class="px-4 py-2 rounded-lg text-sm font-medium transition-all"
+            activeClass="bg-accent-500 text-white shadow-md"
+            inactiveClass="bg-accent-50 text-accent-700 hover:bg-accent-100 border border-accent-200"
+          >
+            ➕ Add Exercise
           </A>
         </nav>
       </header>
@@ -55,6 +64,7 @@ function App() {
     <Router root={Layout}>
       <Route path="/" component={Muscles} />
       <Route path="/exercises" component={Exercises} />
+      <Route path="/exercises/new" component={AddExercise} />
     </Router>
   )
 }
