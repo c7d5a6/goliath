@@ -1,5 +1,4 @@
 import { createSignal, createResource, For, Show, createMemo } from 'solid-js'
-import './App.css'
 
 interface Muscle {
   id: number
@@ -44,32 +43,48 @@ function App() {
   })
 
   return (
-    <div class="app">
-      <header class="header">
-        <h1>
-          <span class="icon">💪</span>
+    <div class="min-h-screen p-4 sm:p-6 lg:p-8">
+      {/* Header */}
+      <header class="max-w-6xl mx-auto mb-6">
+        <h1 class="text-2xl sm:text-3xl font-bold text-slate-900 flex items-center gap-3">
+          <span class="text-2xl sm:text-3xl">💪</span>
           Goliath Muscles
         </h1>
-        <p class="subtitle">Complete muscle database with exercise area mappings</p>
+        <p class="text-slate-500 mt-1">
+          Complete muscle database with exercise area mappings
+        </p>
+        
         <Show when={data()}>
-          <div class="stats">
-            <span class="stat-badge">
-              Muscles <span class="count">{data()!.count}</span>
+          <div class="flex gap-3 mt-4 flex-wrap">
+            <span class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-full text-sm font-medium shadow-sm">
+              Muscles
+              <span class="bg-primary-500 text-white px-2 py-0.5 rounded-full text-xs font-semibold">
+                {data()!.count}
+              </span>
             </span>
-            <span class="stat-badge">
-              Groups <span class="count">{muscleGroups()}</span>
+            <span class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-full text-sm font-medium shadow-sm">
+              Groups
+              <span class="bg-primary-500 text-white px-2 py-0.5 rounded-full text-xs font-semibold">
+                {muscleGroups()}
+              </span>
             </span>
           </div>
         </Show>
       </header>
 
-      <div class="table-container">
-        <div class="search-box">
-          <div class="search-wrapper">
-            <span class="search-icon">🔍</span>
+      {/* Main Table Container */}
+      <div class="max-w-6xl mx-auto bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
+        {/* Search Box */}
+        <div class="p-4 border-b border-slate-200 bg-slate-50">
+          <div class="relative">
+            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+              🔍
+            </span>
             <input
               type="text"
-              class="search-input"
+              class="w-full pl-11 pr-4 py-3 border border-slate-200 rounded-lg text-sm bg-white 
+                     focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
+                     placeholder:text-slate-400 transition-shadow"
               placeholder="Search muscles, groups, or exercise areas..."
               value={search()}
               onInput={(e) => setSearch(e.currentTarget.value)}
@@ -77,66 +92,86 @@ function App() {
           </div>
         </div>
 
+        {/* Loading State */}
         <Show when={data.loading}>
-          <div class="loading">
-            <div class="spinner"></div>
+          <div class="flex flex-col items-center justify-center py-16 text-slate-500">
+            <div class="spinner mb-4"></div>
             <span>Loading muscles...</span>
           </div>
         </Show>
 
+        {/* Error State */}
         <Show when={data.error}>
-          <div class="error">
-            <div class="error-icon">⚠️</div>
-            <p>Failed to load muscles</p>
-            <p style={{ "font-size": "0.85rem", opacity: 0.8 }}>{data.error?.message}</p>
-            <button class="retry-btn" onClick={() => refetch()}>
+          <div class="py-12 px-4 text-center text-red-600">
+            <div class="text-4xl mb-2">⚠️</div>
+            <p class="font-medium">Failed to load muscles</p>
+            <p class="text-sm opacity-80 mt-1">{data.error?.message}</p>
+            <button
+              class="mt-4 px-6 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium
+                     hover:bg-primary-600 active:scale-[0.98] transition-all"
+              onClick={() => refetch()}
+            >
               Try Again
             </button>
           </div>
         </Show>
 
+        {/* Content */}
         <Show when={data() && !data.loading && !data.error}>
+          {/* Empty State */}
           <Show when={filteredMuscles().length === 0}>
-            <div class="empty">
-              <div class="empty-icon">🔍</div>
+            <div class="py-16 px-4 text-center text-slate-500">
+              <div class="text-4xl mb-2 opacity-50">🔍</div>
               <p>No muscles found matching "{search()}"</p>
             </div>
           </Show>
 
           <Show when={filteredMuscles().length > 0}>
             {/* Desktop Table View */}
-            <div class="table-wrapper">
-              <table>
-                <thead>
+            <div class="hidden sm:block overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead class="bg-gradient-to-b from-slate-50 to-slate-100 sticky top-0">
                   <tr>
-                    <th>#</th>
-                    <th>Muscle</th>
-                    <th>Muscle Group</th>
-                    <th>Exercise Areas</th>
+                    <th class="px-4 py-3 text-left font-semibold text-slate-700 border-b-2 border-slate-200 text-xs uppercase tracking-wide">
+                      #
+                    </th>
+                    <th class="px-4 py-3 text-left font-semibold text-slate-700 border-b-2 border-slate-200 text-xs uppercase tracking-wide">
+                      Muscle
+                    </th>
+                    <th class="px-4 py-3 text-left font-semibold text-slate-700 border-b-2 border-slate-200 text-xs uppercase tracking-wide">
+                      Muscle Group
+                    </th>
+                    <th class="px-4 py-3 text-left font-semibold text-slate-700 border-b-2 border-slate-200 text-xs uppercase tracking-wide">
+                      Exercise Areas
+                    </th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody class="divide-y divide-slate-100">
                   <For each={filteredMuscles()}>
                     {(muscle) => (
-                      <tr>
-                        <td style={{ color: 'var(--color-text-secondary)', "font-size": "0.85rem" }}>
+                      <tr class="hover:bg-primary-50 transition-colors">
+                        <td class="px-4 py-3 text-slate-400 text-sm">
                           {muscle.id}
                         </td>
-                        <td>
-                          <span class="muscle-name">{muscle.name}</span>
+                        <td class="px-4 py-3">
+                          <span class="font-semibold text-slate-900">{muscle.name}</span>
                         </td>
-                        <td>
-                          <span class="muscle-group">{muscle.muscle_group_name}</span>
+                        <td class="px-4 py-3">
+                          <span class="inline-block px-3 py-1 bg-accent-50 text-accent-500 rounded-full text-xs font-medium">
+                            {muscle.muscle_group_name}
+                          </span>
                         </td>
-                        <td>
-                          <div class="exercise-areas">
+                        <td class="px-4 py-3">
+                          <div class="flex flex-wrap gap-1.5">
                             <For each={muscle.exercise_areas}>
-                              {(area) => <span class="exercise-area-tag">{area}</span>}
+                              {(area) => (
+                                <span class="inline-block px-2 py-0.5 bg-primary-50 text-primary-600 rounded text-xs font-medium">
+                                  {area}
+                                </span>
+                              )}
                             </For>
                             <Show when={muscle.exercise_areas.length === 0}>
-                              <span style={{ color: 'var(--color-text-secondary)', "font-size": "0.85rem" }}>
-                                —
-                              </span>
+                              <span class="text-slate-400 text-sm">—</span>
                             </Show>
                           </div>
                         </td>
@@ -148,21 +183,31 @@ function App() {
             </div>
 
             {/* Mobile Cards View */}
-            <div class="cards-view">
+            <div class="sm:hidden p-4 space-y-3">
               <For each={filteredMuscles()}>
                 {(muscle) => (
-                  <div class="muscle-card">
-                    <div class="card-header">
-                      <span class="card-name">{muscle.name}</span>
-                      <span class="card-id">#{muscle.id}</span>
+                  <div class="bg-white border border-slate-200 rounded-lg p-4 active:bg-primary-50 transition-colors">
+                    <div class="flex justify-between items-start gap-3 mb-3">
+                      <span class="font-semibold text-slate-900">{muscle.name}</span>
+                      <span class="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded flex-shrink-0">
+                        #{muscle.id}
+                      </span>
                     </div>
-                    <span class="muscle-group">{muscle.muscle_group_name}</span>
+                    <span class="inline-block px-3 py-1 bg-accent-50 text-accent-500 rounded-full text-xs font-medium">
+                      {muscle.muscle_group_name}
+                    </span>
                     <Show when={muscle.exercise_areas.length > 0}>
-                      <div class="card-areas">
-                        <div class="card-areas-label">Exercise Areas</div>
-                        <div class="exercise-areas">
+                      <div class="mt-3">
+                        <div class="text-[10px] uppercase tracking-wide text-slate-400 mb-1.5">
+                          Exercise Areas
+                        </div>
+                        <div class="flex flex-wrap gap-1.5">
                           <For each={muscle.exercise_areas}>
-                            {(area) => <span class="exercise-area-tag">{area}</span>}
+                            {(area) => (
+                              <span class="inline-block px-2 py-0.5 bg-primary-50 text-primary-600 rounded text-xs font-medium">
+                                {area}
+                              </span>
+                            )}
                           </For>
                         </div>
                       </div>
@@ -175,8 +220,9 @@ function App() {
         </Show>
       </div>
 
-      <footer class="footer">
-        Goliath Fitness Tracker · Built with SolidJS
+      {/* Footer */}
+      <footer class="max-w-6xl mx-auto mt-6 text-center text-slate-400 text-sm">
+        Goliath Fitness Tracker · Built with SolidJS + Tailwind
       </footer>
     </div>
   )
