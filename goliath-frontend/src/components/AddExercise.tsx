@@ -52,10 +52,6 @@ export default function AddExercise() {
       .slice(0, 10) // Limit to 10 results
   }
 
-  const totalPercentage = () => {
-    return selectedMuscles().reduce((sum, m) => sum + m.percentage, 0)
-  }
-
   const addMuscle = (muscle: Muscle) => {
     setSelectedMuscles([...selectedMuscles(), { ...muscle, percentage: 20 }])
     setSearchMuscle('')
@@ -192,7 +188,7 @@ export default function AddExercise() {
         {/* Muscle Selection */}
         <div>
           <label class="block text-sm font-semibold text-slate-700 mb-2">
-            Targeted Muscles * (Total: {totalPercentage()}%)
+            Targeted Muscles *
           </label>
           
           {/* Selected Muscles */}
@@ -313,6 +309,7 @@ export default function AddExercise() {
             Cancel
           </button>
         </div>
+      </form>
     </div>
   )
 }
