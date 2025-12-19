@@ -3,3 +3,7 @@
 *.db-wal
 
 goliath-backend/goliath
+
+goliath-backend/goliath-?*-firebase*.json
+
+goliath-backend/goliath-firebase.json
