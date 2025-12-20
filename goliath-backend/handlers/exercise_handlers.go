@@ -3,6 +3,7 @@ package handlers
 import (
 	"goliath/services"
 	"log"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -75,5 +76,65 @@ func (h *ExerciseHandlers) CreateExercise(c *gin.Context) {
 	c.JSON(201, gin.H{
 		"id":      exerciseID,
 		"message": "Exercise created successfully",
+	})
+}
+
+// GetExercise handles GET /exercises/:id
+func (h *ExerciseHandlers) GetExercise(c *gin.Context) {
+	ctx := c.Request.Context()
+	
+	// Parse ID from URL
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		c.JSON(400, gin.H{"error": "Invalid exercise ID"})
+		return
+	}
+
+	exercise, err := h.exerciseService.GetExerciseByID(ctx, id)
+	if err != nil {
+		c.JSON(404, gin.H{"error": "Exercise not found"})
+		return
+	}
+
+	c.JSON(200, exercise)
+}
+
+// UpdateExercise handles PUT /exercises/:id
+func (h *ExerciseHandlers) UpdateExercise(c *gin.Context) {
+	ctx := c.Request.Context()
+	
+	// Parse ID from URL
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		c.JSON(400, gin.H{"error": "Invalid exercise ID"})
+		return
+	}
+
+	var input services.UpdateExerciseInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	err = h.exerciseService.UpdateExercise(ctx, id, input)
+	if err != nil {
+		// Check if it's a business logic error
+		if err.Error() == "exercise with name '"+input.Name+"' already exists" {
+			c.JSON(409, gin.H{"error": err.Error()})
+			return
+		}
+		if err.Error() == "invalid exercise type: "+input.Type {
+			c.JSON(400, gin.H{"error": err.Error()})
+			return
+		}
+		// Database or other errors
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"message": "Exercise updated successfully",
 	})
 }

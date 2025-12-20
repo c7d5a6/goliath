@@ -65,9 +65,17 @@ const (
 // Exercise represents a specific exercise
 type Exercise struct {
 	BaseEntity
-	Name    string            `json:"name" db:"name"`
-	Type    ExerciseType      `json:"type" db:"type"`
-	Muscles []ExerciseMuscle  `json:"muscles,omitempty"` // For many-to-many relationship with percentages
+	Name          string                 `json:"name" db:"name"`
+	Type          ExerciseType           `json:"type" db:"type"`
+	Muscles       []ExerciseMuscle       `json:"muscles,omitempty"`        // For many-to-many relationship with percentages
+	ExerciseAreas []ExerciseAreaSummary  `json:"exercise_areas,omitempty"` // Grouped exercise areas
+}
+
+// ExerciseAreaSummary represents an exercise area for an exercise with aggregated percentage
+type ExerciseAreaSummary struct {
+	ExerciseAreaID   int     `json:"exercise_area_id"`
+	ExerciseAreaName string  `json:"exercise_area_name"`
+	Percentage       float64 `json:"percentage"` // Average of percentages of all muscles in this area
 }
 
 // ExerciseMuscle represents the many-to-many relationship between exercises and muscles with percentage

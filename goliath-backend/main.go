@@ -93,6 +93,7 @@ func main() {
 
 		// Exercise-related routes
 		public.GET("/exercises", exerciseHandlers.GetExercises)
+		public.GET("/exercises/:id", exerciseHandlers.GetExercise)
 		public.GET("/exercise-types", exerciseHandlers.GetExerciseTypes)
 
 		// User-related routes
@@ -103,8 +104,9 @@ func main() {
 	admin := r.Group("/")
 	admin.Use(middleware.RequireAdmin())
 	{
-		// Create exercise requires admin role (transaction is already global)
+		// Create and update exercise requires admin role (transaction is already global)
 		admin.POST("/exercises", exerciseHandlers.CreateExercise)
+		admin.PUT("/exercises/:id", exerciseHandlers.UpdateExercise)
 	}
 
 	// Get port from environment or use default

@@ -2,9 +2,9 @@ import { createSignal, createResource, For, Show, createMemo } from 'solid-js'
 import { A } from '@solidjs/router'
 import { apiGet } from '../api'
 
-interface ExerciseMuscle {
-  muscle_id: number
-  muscle_name: string
+interface ExerciseArea {
+  exercise_area_id: number
+  exercise_area_name: string
   percentage: number
 }
 
@@ -12,7 +12,7 @@ interface Exercise {
   id: number
   name: string
   type: string
-  muscles: ExerciseMuscle[]
+  exercise_areas: ExerciseArea[]
 }
 
 interface ExercisesResponse {
@@ -42,7 +42,7 @@ export default function Exercises() {
       (e) =>
         e.name.toLowerCase().includes(query) ||
         e.type.toLowerCase().includes(query) ||
-        e.muscles.some((m) => m.muscle_name.toLowerCase().includes(query))
+        e.exercise_areas.some((area) => area.exercise_area_name.toLowerCase().includes(query))
     )
   })
 
@@ -92,7 +92,7 @@ export default function Exercises() {
               class="w-full pl-11 pr-4 py-3 border border-slate-200 rounded-lg text-sm bg-white 
                      focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
                      placeholder:text-slate-400 transition-shadow"
-              placeholder="Search exercises, types, or muscles..."
+              placeholder="Search exercises, types, or exercise areas..."
               value={search()}
               onInput={(e) => setSearch(e.currentTarget.value)}
             />
@@ -149,7 +149,7 @@ export default function Exercises() {
                       Type
                     </th>
                     <th class="px-4 py-3 text-left font-semibold text-slate-700 border-b-2 border-slate-200 text-xs uppercase tracking-wide">
-                      Targeted Muscles
+                      Exercise Areas
                     </th>
                   </tr>
                 </thead>
@@ -163,7 +163,12 @@ export default function Exercises() {
                             {exercise.id}
                           </td>
                           <td class="px-4 py-3">
-                            <span class="font-semibold text-slate-900">{exercise.name}</span>
+                            <A 
+                              href={`/exercises/${exercise.id}/edit`}
+                              class="font-semibold text-primary-600 hover:text-primary-700 hover:underline transition-colors cursor-pointer"
+                            >
+                              {exercise.name}
+                            </A>
                           </td>
                           <td class="px-4 py-3">
                             <span class={`inline-block px-3 py-1 ${colors.bg} ${colors.text} rounded-full text-xs font-medium`}>
@@ -172,17 +177,17 @@ export default function Exercises() {
                           </td>
                           <td class="px-4 py-3">
                             <div class="flex flex-wrap gap-1.5">
-                              <For each={exercise.muscles}>
-                                {(muscle) => (
+                              <For each={exercise.exercise_areas}>
+                                {(area) => (
                                   <span class="inline-flex items-center gap-1.5 px-2 py-0.5 bg-accent-50 text-accent-600 rounded text-xs font-medium">
-                                    {muscle.muscle_name}
+                                    {area.exercise_area_name}
                                     <span class="text-[10px] font-semibold bg-accent-100 px-1 rounded">
-                                      {muscle.percentage}%
+                                      {Math.round(area.percentage)}%
                                     </span>
                                   </span>
                                 )}
                               </For>
-                              <Show when={exercise.muscles.length === 0}>
+                              <Show when={exercise.exercise_areas.length === 0}>
                                 <span class="text-slate-400 text-sm">—</span>
                               </Show>
                             </div>
@@ -201,28 +206,34 @@ export default function Exercises() {
                 {(exercise) => {
                   const colors = typeColors[exercise.type] || { bg: 'bg-gray-50', text: 'text-gray-600' }
                   return (
-                    <div class="bg-white border border-slate-200 rounded-lg p-4 active:bg-primary-50 transition-colors">
+                    <A 
+                      href={`/exercises/${exercise.id}/edit`}
+                      class="block bg-white border border-slate-200 rounded-lg p-4 hover:border-primary-300 hover:shadow-md active:bg-primary-50 transition-all"
+                    >
                       <div class="flex justify-between items-start gap-3 mb-3">
-                        <span class="font-semibold text-slate-900">{exercise.name}</span>
-                        <span class="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded flex-shrink-0">
-                          #{exercise.id}
-                        </span>
+                        <span class="font-semibold text-primary-600">{exercise.name}</span>
+                        <div class="flex items-center gap-2">
+                          <span class="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded flex-shrink-0">
+                            #{exercise.id}
+                          </span>
+                          <span class="text-slate-400 text-sm">→</span>
+                        </div>
                       </div>
                       <span class={`inline-block px-3 py-1 ${colors.bg} ${colors.text} rounded-full text-xs font-medium`}>
                         {exercise.type}
                       </span>
-                      <Show when={exercise.muscles.length > 0}>
+                      <Show when={exercise.exercise_areas.length > 0}>
                         <div class="mt-3">
                           <div class="text-[10px] uppercase tracking-wide text-slate-400 mb-1.5">
-                            Targeted Muscles
+                            Exercise Areas
                           </div>
                           <div class="flex flex-wrap gap-1.5">
-                            <For each={exercise.muscles}>
-                              {(muscle) => (
+                            <For each={exercise.exercise_areas}>
+                              {(area) => (
                                 <span class="inline-flex items-center gap-1.5 px-2 py-0.5 bg-accent-50 text-accent-600 rounded text-xs font-medium">
-                                  {muscle.muscle_name}
+                                  {area.exercise_area_name}
                                   <span class="text-[10px] font-semibold bg-accent-100 px-1 rounded">
-                                    {muscle.percentage}%
+                                    {Math.round(area.percentage)}%
                                   </span>
                                 </span>
                               )}
@@ -230,7 +241,7 @@ export default function Exercises() {
                           </div>
                         </div>
                       </Show>
-                    </div>
+                    </A>
                   )
                 }}
               </For>

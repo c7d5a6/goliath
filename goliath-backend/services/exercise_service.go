@@ -21,7 +21,7 @@ func NewExerciseService(exerciseRepo *repositories.ExerciseRepository) *Exercise
 	}
 }
 
-// GetAllExercises retrieves all exercises with their associated muscles
+// GetAllExercises retrieves all exercises with their associated exercise areas
 func (s *ExerciseService) GetAllExercises(ctx context.Context) ([]entities.Exercise, error) {
 	// Get all exercises
 	exercises, err := s.exerciseRepo.GetAll(ctx)
@@ -33,22 +33,40 @@ func (s *ExerciseService) GetAllExercises(ctx context.Context) ([]entities.Exerc
 		return exercises, nil
 	}
 
-	// Get muscles for all exercises
-	exerciseMusclesMap, err := s.exerciseRepo.GetMusclesForAllExercises(ctx)
+	// Get exercise areas for all exercises
+	exerciseAreasMap, err := s.exerciseRepo.GetExerciseAreasForAllExercises(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// Assign muscles to exercises
+	// Assign exercise areas to exercises
 	for i := range exercises {
-		if muscles, ok := exerciseMusclesMap[exercises[i].ID]; ok {
-			exercises[i].Muscles = muscles
+		if areas, ok := exerciseAreasMap[exercises[i].ID]; ok {
+			exercises[i].ExerciseAreas = areas
 		} else {
-			exercises[i].Muscles = []entities.ExerciseMuscle{}
+			exercises[i].ExerciseAreas = []entities.ExerciseAreaSummary{}
 		}
 	}
 
 	return exercises, nil
+}
+
+// GetExerciseByID retrieves a single exercise with its muscles
+func (s *ExerciseService) GetExerciseByID(ctx context.Context, id int) (*entities.Exercise, error) {
+	// Get exercise
+	exercise, err := s.exerciseRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get muscles for the exercise
+	muscles, err := s.exerciseRepo.GetMusclesForExercise(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	exercise.Muscles = muscles
+
+	return exercise, nil
 }
 
 // GetExerciseTypes returns all valid exercise types
@@ -99,4 +117,53 @@ func (s *ExerciseService) CreateExercise(ctx context.Context, input CreateExerci
 	}
 
 	return exerciseID, nil
+}
+
+// UpdateExerciseInput represents input for updating an exercise
+type UpdateExerciseInput struct {
+	Name    string                     `json:"name" binding:"required,min=1"`
+	Type    string                     `json:"type" binding:"required"`
+	Muscles []repositories.MuscleInput `json:"muscles" binding:"required,min=1,dive"`
+}
+
+// UpdateExercise updates an existing exercise with validation
+func (s *ExerciseService) UpdateExercise(ctx context.Context, id int, input UpdateExerciseInput) error {
+	log.Printf("Service exercise update %s", input.Name)
+	
+	// Validate exercise type
+	validType := false
+	for _, t := range s.GetExerciseTypes() {
+		if input.Type == t {
+			validType = true
+			break
+		}
+	}
+	if !validType {
+		return fmt.Errorf("invalid exercise type: %s", input.Type)
+	}
+
+	// Check if exercise exists
+	existingExercise, err := s.exerciseRepo.GetByID(ctx, id)
+	if err != nil {
+		return fmt.Errorf("exercise not found: %w", err)
+	}
+
+	// Check if new name conflicts with another exercise (if name is being changed)
+	if input.Name != existingExercise.Name {
+		exists, err := s.exerciseRepo.ExerciseExists(ctx, input.Name)
+		if err != nil {
+			return fmt.Errorf("failed to check exercise existence: %w", err)
+		}
+		if exists {
+			return fmt.Errorf("exercise with name '%s' already exists", input.Name)
+		}
+	}
+
+	// Update exercise
+	err = s.exerciseRepo.Update(ctx, id, input.Name, entities.ExerciseType(input.Type), input.Muscles)
+	if err != nil {
+		return fmt.Errorf("failed to update exercise: %w", err)
+	}
+
+	return nil
 }

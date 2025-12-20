@@ -58,6 +58,92 @@ func (r *ExerciseRepository) GetAll(ctx context.Context) ([]entities.Exercise, e
 	return exercises, nil
 }
 
+// GetByID retrieves a single exercise by ID
+func (r *ExerciseRepository) GetByID(ctx context.Context, id int) (*entities.Exercise, error) {
+	executor, err := r.GetExecutor(ctx)
+	if err != nil {
+		return nil, err
+	}
+	
+	row := executor.QueryRowContext(ctx, `
+		SELECT id, version, created_when, created_by, modified_when, modified_by, name, type
+		FROM exercise
+		WHERE id = ?
+	`, id)
+	
+	var exercise entities.Exercise
+	var createdWhen, modifiedWhen string
+	var exerciseType string
+	err = row.Scan(
+		&exercise.ID,
+		&exercise.Version,
+		&createdWhen,
+		&exercise.CreatedBy,
+		&modifiedWhen,
+		&exercise.ModifiedBy,
+		&exercise.Name,
+		&exerciseType,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	exercise.CreatedWhen, _ = time.Parse("2006-01-02 15:04:05", createdWhen)
+	exercise.ModifiedWhen, _ = time.Parse("2006-01-02 15:04:05", modifiedWhen)
+	exercise.Type = entities.ExerciseType(exerciseType)
+	exercise.Muscles = []entities.ExerciseMuscle{}
+	exercise.ExerciseAreas = []entities.ExerciseAreaSummary{}
+	
+	return &exercise, nil
+}
+
+// GetExerciseAreasForAllExercises retrieves exercise areas for all exercises with aggregated percentages
+func (r *ExerciseRepository) GetExerciseAreasForAllExercises(ctx context.Context) (map[int][]entities.ExerciseAreaSummary, error) {
+	executor, err := r.GetExecutor(ctx)
+	if err != nil {
+		return nil, err
+	}
+	
+	// This query:
+	// 1. Joins exercise_muscle to get all muscles for exercises
+	// 2. Joins muscle_exercise_area to get exercise areas for those muscles
+	// 3. Joins exercise_area to get the area names
+	// 4. Groups by exercise_id and exercise_area_id to calculate average percentages
+	rows, err := executor.QueryContext(ctx, `
+		SELECT 
+			em.exercise_id,
+			ea.id as exercise_area_id,
+			ea.name as exercise_area_name,
+			AVG(em.percentage) as avg_percentage
+		FROM exercise_muscle em
+		JOIN muscle m ON em.muscle_id = m.id
+		JOIN muscle_exercise_area mea ON m.id = mea.muscle_id
+		JOIN exercise_area ea ON mea.exercise_area_id = ea.id
+		GROUP BY em.exercise_id, ea.id, ea.name
+		ORDER BY em.exercise_id, avg_percentage DESC
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	exerciseAreasMap := make(map[int][]entities.ExerciseAreaSummary)
+	for rows.Next() {
+		var exerciseID int
+		var area entities.ExerciseAreaSummary
+		if err := rows.Scan(&exerciseID, &area.ExerciseAreaID, &area.ExerciseAreaName, &area.Percentage); err != nil {
+			return nil, err
+		}
+		exerciseAreasMap[exerciseID] = append(exerciseAreasMap[exerciseID], area)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return exerciseAreasMap, nil
+}
+
 // GetMusclesForExercise retrieves muscles associated with an exercise
 func (r *ExerciseRepository) GetMusclesForExercise(ctx context.Context, exerciseID int) ([]entities.ExerciseMuscle, error) {
 	executor, err := r.GetExecutor(ctx)
@@ -196,4 +282,54 @@ func (r *ExerciseRepository) Create(ctx context.Context, name string, exerciseTy
 	}
 
 	return exerciseID, nil
+}
+
+// Update updates an existing exercise with associated muscles in a transaction
+// This method requires a transaction to be present in the context (from Transaction middleware)
+func (r *ExerciseRepository) Update(ctx context.Context, id int, name string, exerciseType entities.ExerciseType, muscles []MuscleInput) error {
+	log.Printf("Starting to update exercise %d", id)
+	
+	// Get user from context
+	user, hasUser := middleware.GetUserFromContext(ctx)
+	if !hasUser {
+		return ErrUserRequired
+	}
+
+	// Get executor (must be a transaction)
+	executor, err := r.GetExecutor(ctx)
+	if err != nil {
+		return err
+	}
+
+	log.Printf("Updating exercise with user %s", user.Email)
+	
+	// Update exercise
+	now := time.Now().Format("2006-01-02 15:04:05")
+	_, err = executor.ExecContext(ctx, `
+		UPDATE exercise 
+		SET name = ?, type = ?, modified_by = ?, modified_when = ?, version = version + 1
+		WHERE id = ?
+	`, name, exerciseType, user.FirebaseUID, now, id)
+	if err != nil {
+		return err
+	}
+
+	// Delete existing exercise muscles
+	_, err = executor.ExecContext(ctx, `DELETE FROM exercise_muscle WHERE exercise_id = ?`, id)
+	if err != nil {
+		return err
+	}
+
+	// Insert new exercise muscles
+	for _, m := range muscles {
+		_, err := executor.ExecContext(ctx, `
+			INSERT INTO exercise_muscle (exercise_id, muscle_id, percentage, created_when)
+			VALUES (?, ?, ?, ?)
+		`, id, m.MuscleID, m.Percentage, now)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './auth'
 import Muscles from './components/Muscles'
 import Exercises from './components/Exercises'
 import AddExercise from './components/AddExercise'
+import EditExercise from './components/EditExercise'
 import Users from './components/Users'
 import Login from './components/Login'
 
@@ -114,6 +115,7 @@ const AppContent: Component = () => {
       <Route path="/exercises" component={Exercises} />
       <Route path="/users" component={Users} />
       <Route path="/exercises/new" component={AddExercise} />
+      <Route path="/exercises/:id/edit" component={EditExercise} />
     </Router>
   )
 }
