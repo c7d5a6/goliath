@@ -1,7 +1,10 @@
 import { getAuthHeader } from './auth'
 
-// Base API URL
-const API_BASE = '/api'
+// Base API URL - uses /api in development (proxied), and production backend URL in production
+// TODO: Update with your actual production backend URL
+const API_BASE = import.meta.env.PROD 
+  ? 'https://your-backend-api.com' // TODO: Replace with your actual backend URL
+  : '/api'
 
 // Helper function for authenticated GET requests
 export async function apiGet<T>(endpoint: string): Promise<T> {
