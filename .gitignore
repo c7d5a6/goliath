@@ -7,3 +7,7 @@ goliath-backend/goliath
 goliath-backend/goliath-?*-firebase*.json
 
 goliath-backend/goliath-firebase.json
+
+goliath-frontend/node_modules/
+
+goliath-frontend/dist/
