@@ -37,10 +37,13 @@ npm run build
 # Commit version bump
 git add -A
 git commit -am "prerelease $version" || true
+cd "$(dirname "$0")"
+cd ..
 
 # Switch to gh-pages branch
 git checkout gh-pages
 git pull origin gh-pages || true
+
 
 # Clean old files
 rm -f *.js *.json *.txt *.png *.css *.svg *.html *.ico
