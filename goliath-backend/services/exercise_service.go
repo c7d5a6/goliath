@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"goliath/entities"
 	"goliath/repositories"
@@ -61,13 +62,14 @@ func (s *ExerciseService) GetExerciseTypes() []string {
 
 // CreateExerciseInput represents input for creating an exercise
 type CreateExerciseInput struct {
-	Name    string                        `json:"name" binding:"required,min=1"`
-	Type    string                        `json:"type" binding:"required"`
-	Muscles []repositories.MuscleInput    `json:"muscles" binding:"required,min=1,dive"`
+	Name    string                     `json:"name" binding:"required,min=1"`
+	Type    string                     `json:"type" binding:"required"`
+	Muscles []repositories.MuscleInput `json:"muscles" binding:"required,min=1,dive"`
 }
 
 // CreateExercise creates a new exercise with validation
 func (s *ExerciseService) CreateExercise(ctx context.Context, input CreateExerciseInput) (int64, error) {
+	log.Printf("Service excersise create %s", input.Name)
 	// Validate exercise type
 	validType := false
 	for _, t := range s.GetExerciseTypes() {
@@ -82,6 +84,7 @@ func (s *ExerciseService) CreateExercise(ctx context.Context, input CreateExerci
 
 	// Check if exercise name already exists
 	exists, err := s.exerciseRepo.ExerciseExists(ctx, input.Name)
+	log.Printf("1Service excersise create %s", input.Name)
 	if err != nil {
 		return 0, fmt.Errorf("failed to check exercise existence: %w", err)
 	}
@@ -97,4 +100,3 @@ func (s *ExerciseService) CreateExercise(ctx context.Context, input CreateExerci
 
 	return exerciseID, nil
 }
-

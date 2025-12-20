@@ -4,28 +4,35 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"log"
 	"time"
 
 	"goliath/entities"
 	"goliath/middleware"
 )
 
-// ErrTransactionRequired is returned when a transaction is expected but not found in context
-var ErrTransactionRequired = errors.New("database transaction required in context")
+// ErrUserRequired is returned when a user is expected but not found in context
+var ErrUserRequired = errors.New("user required in context")
 
 // ExerciseRepository handles database operations for exercises
 type ExerciseRepository struct {
-	db *sql.DB
+	BaseRepository
 }
 
 // NewExerciseRepository creates a new ExerciseRepository
 func NewExerciseRepository(db *sql.DB) *ExerciseRepository {
-	return &ExerciseRepository{db: db}
+	return &ExerciseRepository{
+		BaseRepository: BaseRepository{db: db},
+	}
 }
 
 // GetAll retrieves all exercises from the database
 func (r *ExerciseRepository) GetAll(ctx context.Context) ([]entities.Exercise, error) {
-	rows, err := r.db.QueryContext(ctx, `
+	executor, err := r.GetExecutor(ctx)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := executor.QueryContext(ctx, `
 		SELECT id, version, created_when, created_by, modified_when, modified_by, name, type
 		FROM exercise
 		ORDER BY type, name
@@ -53,7 +60,11 @@ func (r *ExerciseRepository) GetAll(ctx context.Context) ([]entities.Exercise, e
 
 // GetMusclesForExercise retrieves muscles associated with an exercise
 func (r *ExerciseRepository) GetMusclesForExercise(ctx context.Context, exerciseID int) ([]entities.ExerciseMuscle, error) {
-	rows, err := r.db.QueryContext(ctx, `
+	executor, err := r.GetExecutor(ctx)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := executor.QueryContext(ctx, `
 		SELECT em.exercise_id, em.muscle_id, m.name, em.percentage, em.created_when, em.created_by
 		FROM exercise_muscle em
 		JOIN muscle m ON em.muscle_id = m.id
@@ -85,7 +96,11 @@ func (r *ExerciseRepository) GetMusclesForExercise(ctx context.Context, exercise
 
 // GetMusclesForAllExercises retrieves muscles for all exercises in one query
 func (r *ExerciseRepository) GetMusclesForAllExercises(ctx context.Context) (map[int][]entities.ExerciseMuscle, error) {
-	rows, err := r.db.QueryContext(ctx, `
+	executor, err := r.GetExecutor(ctx)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := executor.QueryContext(ctx, `
 		SELECT em.exercise_id, em.muscle_id, m.name, em.percentage, em.created_when, em.created_by
 		FROM exercise_muscle em
 		JOIN muscle m ON em.muscle_id = m.id
@@ -116,8 +131,12 @@ func (r *ExerciseRepository) GetMusclesForAllExercises(ctx context.Context) (map
 
 // ExerciseExists checks if an exercise with the given name already exists
 func (r *ExerciseRepository) ExerciseExists(ctx context.Context, name string) (bool, error) {
+	executor, err := r.GetExecutor(ctx)
+	if err != nil {
+		return false, err
+	}
 	var count int
-	err := r.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM exercise WHERE LOWER(name) = LOWER(?)", name).Scan(&count)
+	err = executor.QueryRowContext(ctx, "SELECT COUNT(*) FROM exercise WHERE LOWER(name) = LOWER(?)", name).Scan(&count)
 	if err != nil {
 		return false, err
 	}
@@ -133,18 +152,28 @@ type MuscleInput struct {
 // Create creates a new exercise with associated muscles in a transaction
 // This method requires a transaction to be present in the context (from Transaction middleware)
 func (r *ExerciseRepository) Create(ctx context.Context, name string, exerciseType entities.ExerciseType, muscles []MuscleInput) (int64, error) {
-	// Get transaction from context - it must be present
-	tx, hasTx := middleware.GetTransactionFromContext(ctx)
-	if !hasTx {
-		return 0, ErrTransactionRequired
+	log.Printf("Starting to create exercise %s", name)
+	
+	// Get user from context
+	user, hasUser := middleware.GetUserFromContext(ctx)
+	if !hasUser {
+		return 0, ErrUserRequired
 	}
 
+	// Get executor (must be a transaction)
+	executor, err := r.GetExecutor(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	log.Printf("Creating exercise with user %s", user.Email)
+	
 	// Insert exercise
 	now := time.Now().Format("2006-01-02 15:04:05")
-	result, err := tx.ExecContext(ctx, `
-		INSERT INTO exercise (version, created_when, modified_when, name, type)
-		VALUES (1, ?, ?, ?, ?)
-	`, now, now, name, exerciseType)
+	result, err := executor.ExecContext(ctx, `
+		INSERT INTO exercise (version, created_by, modified_by, created_when, modified_when, name, type)
+		VALUES (1, ?, ?, ?, ?, ?, ?)
+	`, user.FirebaseUID, user.FirebaseUID, now, now, name, exerciseType)
 	if err != nil {
 		return 0, err
 	}
@@ -153,10 +182,11 @@ func (r *ExerciseRepository) Create(ctx context.Context, name string, exerciseTy
 	if err != nil {
 		return 0, err
 	}
+	log.Printf("Created exercise with ID %d", exerciseID)
 
 	// Insert exercise muscles
 	for _, m := range muscles {
-		_, err := tx.ExecContext(ctx, `
+		_, err := executor.ExecContext(ctx, `
 			INSERT INTO exercise_muscle (exercise_id, muscle_id, percentage, created_when)
 			VALUES (?, ?, ?, ?)
 		`, exerciseID, m.MuscleID, m.Percentage, now)
@@ -167,4 +197,3 @@ func (r *ExerciseRepository) Create(ctx context.Context, name string, exerciseTy
 
 	return exerciseID, nil
 }
-

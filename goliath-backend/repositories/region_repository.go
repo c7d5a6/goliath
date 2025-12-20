@@ -9,17 +9,23 @@ import (
 
 // RegionRepository handles database operations for regions
 type RegionRepository struct {
-	db *sql.DB
+	BaseRepository
 }
 
 // NewRegionRepository creates a new RegionRepository
 func NewRegionRepository(db *sql.DB) *RegionRepository {
-	return &RegionRepository{db: db}
+	return &RegionRepository{
+		BaseRepository: BaseRepository{db: db},
+	}
 }
 
 // GetAll retrieves all regions from the database
 func (r *RegionRepository) GetAll(ctx context.Context) ([]entities.Region, error) {
-	rows, err := r.db.QueryContext(ctx, `
+	executor, err := r.GetExecutor(ctx)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := executor.QueryContext(ctx, `
 		SELECT id, version, created_when, created_by, modified_when, modified_by, name 
 		FROM region 
 		ORDER BY id

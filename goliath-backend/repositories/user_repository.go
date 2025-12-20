@@ -9,17 +9,23 @@ import (
 
 // UserRepository handles database operations for users
 type UserRepository struct {
-	db *sql.DB
+	BaseRepository
 }
 
 // NewUserRepository creates a new UserRepository
 func NewUserRepository(db *sql.DB) *UserRepository {
-	return &UserRepository{db: db}
+	return &UserRepository{
+		BaseRepository: BaseRepository{db: db},
+	}
 }
 
 // GetAll retrieves all users from the database
 func (r *UserRepository) GetAll(ctx context.Context) ([]entities.User, error) {
-	rows, err := r.db.QueryContext(ctx, `
+	executor, err := r.GetExecutor(ctx)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := executor.QueryContext(ctx, `
 		SELECT id, version, created_when, created_by, modified_when, modified_by, email, role, firebase_uid
 		FROM user
 		ORDER BY created_when DESC
@@ -57,8 +63,12 @@ func (r *UserRepository) GetAll(ctx context.Context) ([]entities.User, error) {
 
 // GetByID retrieves a user by ID
 func (r *UserRepository) GetByID(ctx context.Context, id int) (*entities.User, error) {
+	executor, err := r.GetExecutor(ctx)
+	if err != nil {
+		return nil, err
+	}
 	var user entities.User
-	err := r.db.QueryRowContext(ctx, `
+	err = executor.QueryRowContext(ctx, `
 		SELECT id, version, created_when, created_by, modified_when, modified_by, email, role, firebase_uid
 		FROM user
 		WHERE id = ?
@@ -86,8 +96,12 @@ func (r *UserRepository) GetByID(ctx context.Context, id int) (*entities.User, e
 
 // GetByEmail retrieves a user by email
 func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*entities.User, error) {
+	executor, err := r.GetExecutor(ctx)
+	if err != nil {
+		return nil, err
+	}
 	var user entities.User
-	err := r.db.QueryRowContext(ctx, `
+	err = executor.QueryRowContext(ctx, `
 		SELECT id, version, created_when, created_by, modified_when, modified_by, email, role, firebase_uid
 		FROM user
 		WHERE email = ?
@@ -115,8 +129,12 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*entitie
 
 // GetByFirebaseUID retrieves a user by Firebase UID
 func (r *UserRepository) GetByFirebaseUID(ctx context.Context, firebaseUID string) (*entities.User, error) {
+	executor, err := r.GetExecutor(ctx)
+	if err != nil {
+		return nil, err
+	}
 	var user entities.User
-	err := r.db.QueryRowContext(ctx, `
+	err = executor.QueryRowContext(ctx, `
 		SELECT id, version, created_when, created_by, modified_when, modified_by, email, role, firebase_uid
 		FROM user
 		WHERE firebase_uid = ?

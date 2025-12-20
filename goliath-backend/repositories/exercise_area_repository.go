@@ -9,17 +9,23 @@ import (
 
 // ExerciseAreaRepository handles database operations for exercise areas
 type ExerciseAreaRepository struct {
-	db *sql.DB
+	BaseRepository
 }
 
 // NewExerciseAreaRepository creates a new ExerciseAreaRepository
 func NewExerciseAreaRepository(db *sql.DB) *ExerciseAreaRepository {
-	return &ExerciseAreaRepository{db: db}
+	return &ExerciseAreaRepository{
+		BaseRepository: BaseRepository{db: db},
+	}
 }
 
 // GetAll retrieves all exercise areas from the database
 func (r *ExerciseAreaRepository) GetAll(ctx context.Context) ([]entities.ExerciseArea, error) {
-	rows, err := r.db.QueryContext(ctx, `
+	executor, err := r.GetExecutor(ctx)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := executor.QueryContext(ctx, `
 		SELECT id, version, created_when, created_by, modified_when, modified_by, name 
 		FROM exercise_area 
 		ORDER BY id
@@ -47,7 +53,11 @@ func (r *ExerciseAreaRepository) GetAll(ctx context.Context) ([]entities.Exercis
 
 // GetByMuscleID retrieves exercise areas for a specific muscle
 func (r *ExerciseAreaRepository) GetByMuscleID(ctx context.Context, muscleID int) ([]string, error) {
-	rows, err := r.db.QueryContext(ctx, `
+	executor, err := r.GetExecutor(ctx)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := executor.QueryContext(ctx, `
 		SELECT ea.name
 		FROM muscle_exercise_area mea
 		JOIN exercise_area ea ON mea.exercise_area_id = ea.id
@@ -77,7 +87,11 @@ func (r *ExerciseAreaRepository) GetByMuscleID(ctx context.Context, muscleID int
 
 // GetAllForMuscles retrieves exercise areas for all muscles in one query
 func (r *ExerciseAreaRepository) GetAllForMuscles(ctx context.Context) (map[int][]string, error) {
-	rows, err := r.db.QueryContext(ctx, `
+	executor, err := r.GetExecutor(ctx)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := executor.QueryContext(ctx, `
 		SELECT mea.muscle_id, ea.name
 		FROM muscle_exercise_area mea
 		JOIN exercise_area ea ON mea.exercise_area_id = ea.id

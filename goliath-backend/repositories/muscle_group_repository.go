@@ -9,17 +9,23 @@ import (
 
 // MuscleGroupRepository handles database operations for muscle groups
 type MuscleGroupRepository struct {
-	db *sql.DB
+	BaseRepository
 }
 
 // NewMuscleGroupRepository creates a new MuscleGroupRepository
 func NewMuscleGroupRepository(db *sql.DB) *MuscleGroupRepository {
-	return &MuscleGroupRepository{db: db}
+	return &MuscleGroupRepository{
+		BaseRepository: BaseRepository{db: db},
+	}
 }
 
 // GetAll retrieves all muscle groups from the database with region information
 func (r *MuscleGroupRepository) GetAll(ctx context.Context) ([]entities.MuscleGroup, error) {
-	rows, err := r.db.QueryContext(ctx, `
+	executor, err := r.GetExecutor(ctx)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := executor.QueryContext(ctx, `
 		SELECT mg.id, mg.version, mg.created_when, mg.created_by, mg.modified_when, mg.modified_by, 
 		       mg.name, mg.region_id, r.name as region_name
 		FROM muscle_group mg

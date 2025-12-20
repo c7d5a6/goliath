@@ -70,10 +70,9 @@ func main() {
 	// 3. User Loader - load full user details if JWT was present
 	r.Use(middleware.UserLoader(db))
 	
-	// 4. Transaction - wrap requests in database transaction
-	// Note: Commented out by default as it wraps ALL routes in transactions
-	// Uncomment if you want all routes to use transactions, or apply selectively
-	// r.Use(middleware.Transaction(db))
+	// 4. Transaction - wrap ALL requests in database transaction
+	// Required because all repository operations now require a transaction
+	r.Use(middleware.Transaction(db))
 
 	// Health check endpoint (public, no auth required)
 	r.GET("/hello", func(c *gin.Context) {
@@ -103,11 +102,8 @@ func main() {
 	admin := r.Group("/")
 	admin.Use(middleware.RequireAdmin())
 	{
-		// Create exercise requires admin role + transaction
-		admin.POST("/exercises", 
-			middleware.Transaction(db),
-			exerciseHandlers.CreateExercise,
-		)
+		// Create exercise requires admin role (transaction is already global)
+		admin.POST("/exercises", exerciseHandlers.CreateExercise)
 	}
 
 	log.Println("Server starting on :8080...")
