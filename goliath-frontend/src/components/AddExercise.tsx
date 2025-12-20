@@ -1,5 +1,6 @@
 import { createSignal, createResource, For, Show } from 'solid-js'
 import { useNavigate } from '@solidjs/router'
+import { getAuthHeader } from '../auth'
 
 interface Muscle {
   id: number
@@ -91,7 +92,10 @@ export default function AddExercise() {
     try {
       const response = await fetch('/api/exercises', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...getAuthHeader()
+        },
         body: JSON.stringify({
           name: name().trim(),
           type: selectedType(),
