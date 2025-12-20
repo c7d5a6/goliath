@@ -50,7 +50,7 @@ rm -f *.js *.json *.txt *.png *.css *.svg *.html *.ico
 rm -rf assets
 
 # Copy new build
-cp -a dist/. ./
+cp -a goliath-frontend/dist/. ./
 
 # Create 404.html for SPA routing
 cp index.html 404.html
