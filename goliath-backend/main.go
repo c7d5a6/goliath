@@ -99,23 +99,16 @@ func main() {
 		public.GET("/users", userHandlers.GetUsers)
 	}
 
-	// Protected routes - authentication required (when you want to enable auth)
-	// Uncomment the following to require authentication:
-	// protected := r.Group("/")
-	// protected.Use(middleware.RequireAuth())
-	// {
-	//     // Example: Create exercise requires authentication + transaction
-	//     protected.POST("/exercises", 
-	//         middleware.Transaction(db),
-	//         exerciseHandlers.CreateExercise,
-	//     )
-	// }
-
-	// For now, allow creating exercises without auth (with transaction management)
-	r.POST("/exercises", 
-		middleware.Transaction(db),
-		exerciseHandlers.CreateExercise,
-	)
+	// Admin-only routes
+	admin := r.Group("/")
+	admin.Use(middleware.RequireAdmin())
+	{
+		// Create exercise requires admin role + transaction
+		admin.POST("/exercises", 
+			middleware.Transaction(db),
+			exerciseHandlers.CreateExercise,
+		)
+	}
 
 	log.Println("Server starting on :8080...")
 	if err := r.Run(":8080"); err != nil {

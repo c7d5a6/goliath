@@ -1,4 +1,5 @@
 import { createSignal, createResource, For, Show, createMemo } from 'solid-js'
+import { apiGet } from '../api'
 
 interface Muscle {
   id: number
@@ -14,11 +15,7 @@ interface MusclesResponse {
 }
 
 async function fetchMuscles(): Promise<MusclesResponse> {
-  const response = await fetch('/api/muscles')
-  if (!response.ok) {
-    throw new Error(`Failed to fetch muscles: ${response.statusText}`)
-  }
-  return response.json()
+  return apiGet<MusclesResponse>('/muscles')
 }
 
 export default function Muscles() {

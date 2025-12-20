@@ -1,4 +1,5 @@
 import { createSignal, createResource, For, Show, createMemo } from 'solid-js'
+import { apiGet } from '../api'
 
 interface User {
   id: number
@@ -17,11 +18,7 @@ interface UsersResponse {
 }
 
 async function fetchUsers(): Promise<UsersResponse> {
-  const response = await fetch('/api/users')
-  if (!response.ok) {
-    throw new Error(`Failed to fetch users: ${response.statusText}`)
-  }
-  return response.json()
+  return apiGet<UsersResponse>('/users')
 }
 
 function formatDate(dateString: string): string {

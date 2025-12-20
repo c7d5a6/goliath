@@ -1,5 +1,6 @@
 import { createSignal, createResource, For, Show, createMemo } from 'solid-js'
 import { A } from '@solidjs/router'
+import { apiGet } from '../api'
 
 interface ExerciseMuscle {
   muscle_id: number
@@ -20,11 +21,7 @@ interface ExercisesResponse {
 }
 
 async function fetchExercises(): Promise<ExercisesResponse> {
-  const response = await fetch('/api/exercises')
-  if (!response.ok) {
-    throw new Error(`Failed to fetch exercises: ${response.statusText}`)
-  }
-  return response.json()
+  return apiGet<ExercisesResponse>('/exercises')
 }
 
 const typeColors: Record<string, { bg: string; text: string }> = {

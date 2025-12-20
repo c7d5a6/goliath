@@ -3,10 +3,15 @@ package repositories
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"time"
 
 	"goliath/entities"
+	"goliath/middleware"
 )
+
+// ErrTransactionRequired is returned when a transaction is expected but not found in context
+var ErrTransactionRequired = errors.New("database transaction required in context")
 
 // ExerciseRepository handles database operations for exercises
 type ExerciseRepository struct {
@@ -126,13 +131,13 @@ type MuscleInput struct {
 }
 
 // Create creates a new exercise with associated muscles in a transaction
+// This method requires a transaction to be present in the context (from Transaction middleware)
 func (r *ExerciseRepository) Create(ctx context.Context, name string, exerciseType entities.ExerciseType, muscles []MuscleInput) (int64, error) {
-	// Start transaction
-	tx, err := r.db.BeginTx(ctx, nil)
-	if err != nil {
-		return 0, err
+	// Get transaction from context - it must be present
+	tx, hasTx := middleware.GetTransactionFromContext(ctx)
+	if !hasTx {
+		return 0, ErrTransactionRequired
 	}
-	defer tx.Rollback()
 
 	// Insert exercise
 	now := time.Now().Format("2006-01-02 15:04:05")
@@ -158,11 +163,6 @@ func (r *ExerciseRepository) Create(ctx context.Context, name string, exerciseTy
 		if err != nil {
 			return 0, err
 		}
-	}
-
-	// Commit transaction
-	if err := tx.Commit(); err != nil {
-		return 0, err
 	}
 
 	return exerciseID, nil

@@ -1,6 +1,6 @@
 import { createSignal, createResource, For, Show } from 'solid-js'
 import { useNavigate } from '@solidjs/router'
-import { getAuthHeader } from '../auth'
+import { apiGet, apiPost } from '../api'
 
 interface Muscle {
   id: number
@@ -13,17 +13,13 @@ interface SelectedMuscle extends Muscle {
 }
 
 async function fetchMuscles() {
-  const response = await fetch('/api/muscles')
-  if (!response.ok) throw new Error('Failed to fetch muscles')
-  const data = await response.json()
-  return data.muscles as Muscle[]
+  const data = await apiGet<{ muscles: Muscle[] }>('/muscles')
+  return data.muscles
 }
 
 async function fetchExerciseTypes() {
-  const response = await fetch('/api/exercise-types')
-  if (!response.ok) throw new Error('Failed to fetch exercise types')
-  const data = await response.json()
-  return data.types as string[]
+  const data = await apiGet<{ types: string[] }>('/exercise-types')
+  return data.types
 }
 
 export default function AddExercise() {
@@ -90,29 +86,14 @@ export default function AddExercise() {
     setIsSubmitting(true)
     
     try {
-      const response = await fetch('/api/exercises', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          ...getAuthHeader()
-        },
-        body: JSON.stringify({
-          name: name().trim(),
-          type: selectedType(),
-          muscles: selectedMuscles().map(m => ({
-            muscle_id: m.id,
-            percentage: m.percentage,
-          })),
-        }),
+      await apiPost('/exercises', {
+        name: name().trim(),
+        type: selectedType(),
+        muscles: selectedMuscles().map(m => ({
+          muscle_id: m.id,
+          percentage: m.percentage,
+        })),
       })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        setError(data.error || 'Failed to create exercise')
-        setIsSubmitting(false)
-        return
-      }
 
       // Success - navigate to exercises page
       navigate('/exercises')
