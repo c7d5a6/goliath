@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"os"
 
 	"goliath/handlers"
 	"goliath/middleware"
@@ -106,8 +107,14 @@ func main() {
 		admin.POST("/exercises", exerciseHandlers.CreateExercise)
 	}
 
-	log.Println("Server starting on :8080...")
-	if err := r.Run(":8080"); err != nil {
+	// Get port from environment or use default
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	log.Printf("Server starting on :%s...\n", port)
+	if err := r.Run(":" + port); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}
 }
