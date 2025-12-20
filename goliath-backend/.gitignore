@@ -1,0 +1,38 @@
+# Binaries
+goliath-backend
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+
+# Output
+*.out
+
+# Database
+*.db
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Credentials
+*firebase*.json
+*.pem
+*.key
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+
