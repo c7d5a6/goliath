@@ -5,6 +5,9 @@ import Muscles from './components/Muscles'
 import Exercises from './components/Exercises'
 import AddExercise from './components/AddExercise'
 import EditExercise from './components/EditExercise'
+import Workouts from './components/Workouts'
+import AddWorkout from './components/AddWorkout'
+import EditWorkout from './components/EditWorkout'
 import Users from './components/Users'
 import Login from './components/Login'
 
@@ -76,6 +79,14 @@ const Layout: ParentComponent = (props) => {
             🏋️ Exercises
           </A>
           <A
+            href="/workouts"
+            class="px-4 py-2 rounded-lg text-sm font-medium transition-all"
+            activeClass="bg-primary-500 text-white shadow-md"
+            inactiveClass="bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
+          >
+            📋 Workouts
+          </A>
+          <A
             href="/users"
             class="px-4 py-2 rounded-lg text-sm font-medium transition-all"
             activeClass="bg-primary-500 text-white shadow-md"
@@ -113,9 +124,12 @@ const AppContent: Component = () => {
       <Route path="/login" component={Login} />
       <Route path="/" component={Muscles} />
       <Route path="/exercises" component={Exercises} />
-      <Route path="/users" component={Users} />
       <Route path="/exercises/new" component={AddExercise} />
       <Route path="/exercises/:id/edit" component={EditExercise} />
+      <Route path="/workouts" component={Workouts} />
+      <Route path="/workouts/new" component={AddWorkout} />
+      <Route path="/workouts/:id/edit" component={EditWorkout} />
+      <Route path="/users" component={Users} />
     </Router>
   )
 }

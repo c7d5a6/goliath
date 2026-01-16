@@ -44,16 +44,19 @@ func main() {
 	muscleRepo := repositories.NewMuscleRepository(db)
 	exerciseRepo := repositories.NewExerciseRepository(db)
 	userRepo := repositories.NewUserRepository(db)
+	workoutRepo := repositories.NewWorkoutRepository(db)
 
 	// Initialize services
 	muscleService := services.NewMuscleService(muscleRepo, muscleGroupRepo, regionRepo, exerciseAreaRepo)
 	exerciseService := services.NewExerciseService(exerciseRepo)
 	userService := services.NewUserService(userRepo)
+	workoutService := services.NewWorkoutService(workoutRepo)
 
 	// Initialize handlers
 	muscleHandlers := handlers.NewMuscleHandlers(muscleService)
 	exerciseHandlers := handlers.NewExerciseHandlers(exerciseService)
 	userHandlers := handlers.NewUserHandlers(userService)
+	workoutHandlers := handlers.NewWorkoutHandlers(workoutService)
 
 	// Setup router
 	r := gin.Default()
@@ -98,6 +101,18 @@ func main() {
 
 		// User-related routes
 		public.GET("/users", userHandlers.GetUsers)
+	}
+
+	// Authenticated user routes - requires authentication but not admin
+	auth := r.Group("/")
+	auth.Use(middleware.RequireAuth())
+	{
+		// Workout routes - users can only access their own workouts
+		auth.GET("/workouts", workoutHandlers.GetWorkouts)
+		auth.GET("/workouts/:id", workoutHandlers.GetWorkout)
+		auth.POST("/workouts", workoutHandlers.CreateWorkout)
+		auth.PUT("/workouts/:id", workoutHandlers.UpdateWorkout)
+		auth.DELETE("/workouts/:id", workoutHandlers.DeleteWorkout)
 	}
 
 	// Admin-only routes

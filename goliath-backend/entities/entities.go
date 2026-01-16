@@ -101,6 +101,13 @@ type User struct {
 	FirebaseUID  *string `json:"firebase_uid,omitempty"`
 }
 
+// Workout represents a workout belonging to a user
+type Workout struct {
+	BaseEntity
+	Name   string `json:"name" db:"name"`
+	UserID int    `json:"user_id" db:"user_id"`
+}
+
 // ScanBaseEntity is a helper to scan common fields from database rows
 func ScanBaseEntity(row interface {
 	Scan(dest ...interface{}) error
@@ -277,3 +284,25 @@ func ScanExercise(rows *sql.Rows) (*Exercise, error) {
 	return &e, nil
 }
 
+// ScanWorkout scans a Workout from a database row
+func ScanWorkout(rows *sql.Rows) (*Workout, error) {
+	var w Workout
+	var createdWhen, modifiedWhen string
+	err := rows.Scan(
+		&w.ID,
+		&w.Version,
+		&createdWhen,
+		&w.CreatedBy,
+		&modifiedWhen,
+		&w.ModifiedBy,
+		&w.Name,
+		&w.UserID,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	w.CreatedWhen, _ = time.Parse("2006-01-02 15:04:05", createdWhen)
+	w.ModifiedWhen, _ = time.Parse("2006-01-02 15:04:05", modifiedWhen)
+	return &w, nil
+}
