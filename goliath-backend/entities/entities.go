@@ -108,6 +108,21 @@ type Workout struct {
 	UserID int    `json:"user_id" db:"user_id"`
 }
 
+// WorkoutExercise represents an exercise within a workout with configuration
+type WorkoutExercise struct {
+	BaseEntity
+	WorkoutID    int     `json:"workout_id" db:"workout_id"`
+	ExerciseID   int     `json:"exercise_id" db:"exercise_id"`
+	ExerciseName string  `json:"exercise_name,omitempty" db:"exercise_name"` // For JOIN queries
+	ExerciseType string  `json:"exercise_type,omitempty" db:"exercise_type"` // For JOIN queries
+	Position     int     `json:"position" db:"position"`
+	Sets         *int    `json:"sets,omitempty" db:"sets"`
+	Reps         *int    `json:"reps,omitempty" db:"reps"`
+	TimeSeconds  *int    `json:"time_seconds,omitempty" db:"time_seconds"`
+	Weight       *float64 `json:"weight,omitempty" db:"weight"`
+	Notes        *string `json:"notes,omitempty" db:"notes"`
+}
+
 // ScanBaseEntity is a helper to scan common fields from database rows
 func ScanBaseEntity(row interface {
 	Scan(dest ...interface{}) error
@@ -305,4 +320,35 @@ func ScanWorkout(rows *sql.Rows) (*Workout, error) {
 	w.CreatedWhen, _ = time.Parse("2006-01-02 15:04:05", createdWhen)
 	w.ModifiedWhen, _ = time.Parse("2006-01-02 15:04:05", modifiedWhen)
 	return &w, nil
+}
+
+// ScanWorkoutExercise scans a WorkoutExercise from a database row with exercise details
+func ScanWorkoutExercise(rows *sql.Rows) (*WorkoutExercise, error) {
+	var we WorkoutExercise
+	var createdWhen, modifiedWhen string
+	err := rows.Scan(
+		&we.ID,
+		&we.Version,
+		&createdWhen,
+		&we.CreatedBy,
+		&modifiedWhen,
+		&we.ModifiedBy,
+		&we.WorkoutID,
+		&we.ExerciseID,
+		&we.Position,
+		&we.Sets,
+		&we.Reps,
+		&we.TimeSeconds,
+		&we.Weight,
+		&we.Notes,
+		&we.ExerciseName,
+		&we.ExerciseType,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	we.CreatedWhen, _ = time.Parse("2006-01-02 15:04:05", createdWhen)
+	we.ModifiedWhen, _ = time.Parse("2006-01-02 15:04:05", modifiedWhen)
+	return &we, nil
 }

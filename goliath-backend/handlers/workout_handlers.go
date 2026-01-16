@@ -179,3 +179,154 @@ func (h *WorkoutHandlers) DeleteWorkout(c *gin.Context) {
 		"message": "Workout deleted successfully",
 	})
 }
+
+// GetWorkoutExercises handles GET /workouts/:id/exercises
+func (h *WorkoutHandlers) GetWorkoutExercises(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	// Get user from context
+	user, hasUser := middleware.GetUserFromContext(ctx)
+	if !hasUser {
+		c.JSON(401, gin.H{"error": "Authentication required"})
+		return
+	}
+
+	// Parse workout ID from URL
+	idStr := c.Param("id")
+	workoutID, err := strconv.Atoi(idStr)
+	if err != nil {
+		c.JSON(400, gin.H{"error": "Invalid workout ID"})
+		return
+	}
+
+	exercises, err := h.workoutService.GetWorkoutExercises(ctx, workoutID, user.ID)
+	if err != nil {
+		if err.Error() == "unauthorized: workout does not belong to user" {
+			c.JSON(403, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(404, gin.H{"error": "Workout not found"})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"exercises": exercises,
+		"count":     len(exercises),
+	})
+}
+
+// AddExerciseToWorkout handles POST /workouts/:id/exercises
+func (h *WorkoutHandlers) AddExerciseToWorkout(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	// Get user from context
+	user, hasUser := middleware.GetUserFromContext(ctx)
+	if !hasUser {
+		c.JSON(401, gin.H{"error": "Authentication required"})
+		return
+	}
+
+	// Parse workout ID from URL
+	idStr := c.Param("id")
+	workoutID, err := strconv.Atoi(idStr)
+	if err != nil {
+		c.JSON(400, gin.H{"error": "Invalid workout ID"})
+		return
+	}
+
+	var input services.AddExerciseToWorkoutInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	exerciseID, err := h.workoutService.AddExerciseToWorkout(ctx, workoutID, user.ID, input)
+	if err != nil {
+		if err.Error() == "unauthorized: workout does not belong to user" {
+			c.JSON(403, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(201, gin.H{
+		"id":      exerciseID,
+		"message": "Exercise added to workout successfully",
+	})
+}
+
+// UpdateWorkoutExercise handles PUT /workouts/:id/exercises/:exercise_id
+func (h *WorkoutHandlers) UpdateWorkoutExercise(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	// Get user from context
+	user, hasUser := middleware.GetUserFromContext(ctx)
+	if !hasUser {
+		c.JSON(401, gin.H{"error": "Authentication required"})
+		return
+	}
+
+	// Parse workout exercise ID from URL
+	exerciseIDStr := c.Param("exercise_id")
+	workoutExerciseID, err := strconv.Atoi(exerciseIDStr)
+	if err != nil {
+		c.JSON(400, gin.H{"error": "Invalid workout exercise ID"})
+		return
+	}
+
+	var input services.UpdateWorkoutExerciseInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	err = h.workoutService.UpdateWorkoutExercise(ctx, workoutExerciseID, user.ID, input)
+	if err != nil {
+		if err.Error() == "unauthorized: workout does not belong to user" {
+			c.JSON(403, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"message": "Workout exercise updated successfully",
+	})
+}
+
+// RemoveExerciseFromWorkout handles DELETE /workouts/:id/exercises/:exercise_id
+func (h *WorkoutHandlers) RemoveExerciseFromWorkout(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	// Get user from context
+	user, hasUser := middleware.GetUserFromContext(ctx)
+	if !hasUser {
+		c.JSON(401, gin.H{"error": "Authentication required"})
+		return
+	}
+
+	// Parse workout exercise ID from URL
+	exerciseIDStr := c.Param("exercise_id")
+	workoutExerciseID, err := strconv.Atoi(exerciseIDStr)
+	if err != nil {
+		c.JSON(400, gin.H{"error": "Invalid workout exercise ID"})
+		return
+	}
+
+	err = h.workoutService.RemoveExerciseFromWorkout(ctx, workoutExerciseID, user.ID)
+	if err != nil {
+		if err.Error() == "unauthorized: workout does not belong to user" {
+			c.JSON(403, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"message": "Exercise removed from workout successfully",
+	})
+}
+

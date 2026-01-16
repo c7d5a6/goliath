@@ -45,12 +45,13 @@ func main() {
 	exerciseRepo := repositories.NewExerciseRepository(db)
 	userRepo := repositories.NewUserRepository(db)
 	workoutRepo := repositories.NewWorkoutRepository(db)
+	workoutExerciseRepo := repositories.NewWorkoutExerciseRepository(db)
 
 	// Initialize services
 	muscleService := services.NewMuscleService(muscleRepo, muscleGroupRepo, regionRepo, exerciseAreaRepo)
 	exerciseService := services.NewExerciseService(exerciseRepo)
 	userService := services.NewUserService(userRepo)
-	workoutService := services.NewWorkoutService(workoutRepo)
+	workoutService := services.NewWorkoutService(workoutRepo, workoutExerciseRepo)
 
 	// Initialize handlers
 	muscleHandlers := handlers.NewMuscleHandlers(muscleService)
@@ -113,6 +114,12 @@ func main() {
 		auth.POST("/workouts", workoutHandlers.CreateWorkout)
 		auth.PUT("/workouts/:id", workoutHandlers.UpdateWorkout)
 		auth.DELETE("/workouts/:id", workoutHandlers.DeleteWorkout)
+		
+		// Workout exercise routes - manage exercises within workouts
+		auth.GET("/workouts/:id/exercises", workoutHandlers.GetWorkoutExercises)
+		auth.POST("/workouts/:id/exercises", workoutHandlers.AddExerciseToWorkout)
+		auth.PUT("/workouts/:id/exercises/:exercise_id", workoutHandlers.UpdateWorkoutExercise)
+		auth.DELETE("/workouts/:id/exercises/:exercise_id", workoutHandlers.RemoveExerciseFromWorkout)
 	}
 
 	// Admin-only routes
