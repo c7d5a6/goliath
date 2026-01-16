@@ -94,14 +94,6 @@ const Layout: ParentComponent = (props) => {
           >
             👥 Users
           </A>
-          <A
-            href="/exercises/new"
-            class="px-4 py-2 rounded-lg text-sm font-medium transition-all"
-            activeClass="bg-accent-500 text-white shadow-md"
-            inactiveClass="bg-accent-50 text-accent-700 hover:bg-accent-100 border border-accent-200"
-          >
-            ➕ Add Exercise
-          </A>
         </nav>
       </header>
 
@@ -124,6 +116,7 @@ const AppContent: Component = () => {
       <Route path="/login" component={Login} />
       <Route path="/" component={Muscles} />
       <Route path="/exercises" component={Exercises} />
+      <Route path="/users" component={Users} />
       <Route path="/exercises/new" component={AddExercise} />
       <Route path="/exercises/:id/edit" component={EditExercise} />
       <Route path="/workouts" component={Workouts} />
