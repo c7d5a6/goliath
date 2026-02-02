@@ -106,11 +106,11 @@ export default function EditWorkout() {
   }
 
   // Helper functions to determine which fields to show for each exercise type
-  const showSets = (type: string) => ['Reps', 'Iso', 'Escc', 'Reps Weighted', 'Iso Weighted'].includes(type)
-  const showReps = (type: string) => ['Reps', 'Escc', 'Reps Weighted'].includes(type)
-  const showWeight = (type: string) => ['Reps Weighted', 'Iso Weighted'].includes(type)
-  const showTime = (type: string) => ['Iso', 'Iso Weighted'].includes(type)
-  const showRest = (type: string) => ['Reps', 'Iso', 'Escc', 'Reps Weighted', 'Iso Weighted'].includes(type)
+  const showSets = (type: string) => ['Reps', 'Isometric', 'Eccentric', 'Reps Weighted', 'Isometric Weighted'].includes(type)
+  const showReps = (type: string) => ['Reps', 'Eccentric', 'Reps Weighted'].includes(type)
+  const showWeight = (type: string) => ['Reps Weighted', 'Isometric Weighted'].includes(type)
+  const showTime = (type: string) => ['Isometric', 'Isometric Weighted'].includes(type)
+  const showRest = (type: string) => ['Reps', 'Isometric', 'Eccentric', 'Reps Weighted', 'Isometric Weighted'].includes(type)
 
   const handleAddExercise = async (exercise: Exercise) => {
     try {
@@ -165,6 +165,44 @@ export default function EditWorkout() {
       refetchExercises()
     } catch (err: any) {
       setError(err.message || 'Failed to remove exercise')
+    }
+  }
+
+  const handleMoveExercise = async (exercise: WorkoutExercise, direction: 'up' | 'down') => {
+    const exercises = workoutExercises() || []
+    const currentIndex = exercises.findIndex(e => e.id === exercise.id)
+    
+    if (direction === 'up' && currentIndex === 0) return
+    if (direction === 'down' && currentIndex === exercises.length - 1) return
+
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1
+    const targetExercise = exercises[targetIndex]
+
+    try {
+      // Swap positions
+      await apiPut(`/workouts/${workoutId}/exercises/${exercise.id}`, {
+        position: targetExercise.position,
+        sets: exercise.sets,
+        reps: exercise.reps,
+        time_seconds: exercise.time_seconds,
+        weight: exercise.weight,
+        rest_seconds: exercise.rest_seconds,
+        notes: exercise.notes,
+      })
+      
+      await apiPut(`/workouts/${workoutId}/exercises/${targetExercise.id}`, {
+        position: exercise.position,
+        sets: targetExercise.sets,
+        reps: targetExercise.reps,
+        time_seconds: targetExercise.time_seconds,
+        weight: targetExercise.weight,
+        rest_seconds: targetExercise.rest_seconds,
+        notes: targetExercise.notes,
+      })
+      
+      refetchExercises()
+    } catch (err: any) {
+      setError(err.message || 'Failed to reorder exercise')
     }
   }
 
@@ -349,6 +387,26 @@ export default function EditWorkout() {
                     <div class="p-4 border border-slate-200 rounded-lg hover:border-primary-300 transition-colors">
                       <Show when={editingExercise()?.id !== ex.id}>
                         <div class="flex items-start justify-between gap-4">
+                          {/* Order controls */}
+                          <div class="flex flex-col gap-1">
+                            <button
+                              onClick={() => handleMoveExercise(ex, 'up')}
+                              disabled={(workoutExercises() || []).findIndex(e => e.id === ex.id) === 0}
+                              class="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                              title="Move up"
+                            >
+                              ▲
+                            </button>
+                            <button
+                              onClick={() => handleMoveExercise(ex, 'down')}
+                              disabled={(workoutExercises() || []).findIndex(e => e.id === ex.id) === (workoutExercises() || []).length - 1}
+                              class="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                              title="Move down"
+                            >
+                              ▼
+                            </button>
+                          </div>
+                          
                           <div class="flex-1">
                             <div class="font-semibold text-slate-900">{ex.exercise_name}</div>
                             <div class="text-xs text-slate-500 mb-2">{ex.exercise_type}</div>
@@ -420,7 +478,7 @@ export default function EditWorkout() {
                               </div>
                             </Show>
                             
-                            {/* Reps - for Reps, Escc, Reps Weighted */}
+                            {/* Reps - for Reps, Eccentric, Reps Weighted */}
                             <Show when={showReps(ex.exercise_type)}>
                               <div>
                                 <label class="block text-xs font-medium text-slate-700 mb-1">Reps</label>
@@ -434,7 +492,7 @@ export default function EditWorkout() {
                               </div>
                             </Show>
                             
-                            {/* Time - for Iso, Iso Weighted */}
+                            {/* Time - for Isometric, Isometric Weighted */}
                             <Show when={showTime(ex.exercise_type)}>
                               <div>
                                 <label class="block text-xs font-medium text-slate-700 mb-1">Time (seconds)</label>
@@ -448,7 +506,7 @@ export default function EditWorkout() {
                               </div>
                             </Show>
                             
-                            {/* Weight - for Reps Weighted, Iso Weighted */}
+                            {/* Weight - for Reps Weighted, Isometric Weighted */}
                             <Show when={showWeight(ex.exercise_type)}>
                               <div>
                                 <label class="block text-xs font-medium text-slate-700 mb-1">Weight (kg)</label>

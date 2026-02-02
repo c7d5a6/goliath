@@ -42,7 +42,7 @@ export default function Exercises() {
       (e) =>
         e.name.toLowerCase().includes(query) ||
         e.type.toLowerCase().includes(query) ||
-        e.exercise_areas.some((area) => area.exercise_area_name.toLowerCase().includes(query))
+        (e.exercise_areas || []).some((area) => area.exercise_area_name.toLowerCase().includes(query))
     )
   })
 
@@ -177,7 +177,7 @@ export default function Exercises() {
                           </td>
                           <td class="px-4 py-3">
                             <div class="flex flex-wrap gap-1.5">
-                              <For each={exercise.exercise_areas}>
+                              <For each={exercise.exercise_areas || []}>
                                 {(area) => (
                                   <span class="inline-flex items-center gap-1.5 px-2 py-0.5 bg-accent-50 text-accent-600 rounded text-xs font-medium">
                                     {area.exercise_area_name}
@@ -187,7 +187,7 @@ export default function Exercises() {
                                   </span>
                                 )}
                               </For>
-                              <Show when={exercise.exercise_areas.length === 0}>
+                              <Show when={(exercise.exercise_areas || []).length === 0}>
                                 <span class="text-slate-400 text-sm">—</span>
                               </Show>
                             </div>
@@ -222,13 +222,13 @@ export default function Exercises() {
                       <span class={`inline-block px-3 py-1 ${colors.bg} ${colors.text} rounded-full text-xs font-medium`}>
                         {exercise.type}
                       </span>
-                      <Show when={exercise.exercise_areas.length > 0}>
+                      <Show when={(exercise.exercise_areas || []).length > 0}>
                         <div class="mt-3">
                           <div class="text-[10px] uppercase tracking-wide text-slate-400 mb-1.5">
                             Exercise Areas
                           </div>
                           <div class="flex flex-wrap gap-1.5">
-                            <For each={exercise.exercise_areas}>
+                            <For each={exercise.exercise_areas || []}>
                               {(area) => (
                                 <span class="inline-flex items-center gap-1.5 px-2 py-0.5 bg-accent-50 text-accent-600 rounded text-xs font-medium">
                                   {area.exercise_area_name}

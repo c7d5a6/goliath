@@ -120,10 +120,6 @@ export default function EditExercise() {
       setError('Exercise type is required')
       return
     }
-    if (selectedMuscles().length === 0) {
-      setError('At least one muscle must be selected')
-      return
-    }
 
     setIsSubmitting(true)
     

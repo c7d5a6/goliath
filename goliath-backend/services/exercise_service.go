@@ -73,10 +73,10 @@ func (s *ExerciseService) GetExerciseByID(ctx context.Context, id int) (*entitie
 func (s *ExerciseService) GetExerciseTypes() []string {
 	return []string{
 		string(entities.ExerciseTypeReps),
-		string(entities.ExerciseTypeIso),
-		string(entities.ExerciseTypeEscc),
+		string(entities.ExerciseTypeIsometric),
+		string(entities.ExerciseTypeEccentric),
 		string(entities.ExerciseTypeRepsWeighted),
-		string(entities.ExerciseTypeIsoWeighted),
+		string(entities.ExerciseTypeIsometricWeighted),
 	}
 }
 
@@ -84,7 +84,7 @@ func (s *ExerciseService) GetExerciseTypes() []string {
 type CreateExerciseInput struct {
 	Name    string                     `json:"name" binding:"required,min=1"`
 	Type    string                     `json:"type" binding:"required"`
-	Muscles []repositories.MuscleInput `json:"muscles" binding:"required,min=1,dive"`
+	Muscles []repositories.MuscleInput `json:"muscles" binding:"dive"`
 }
 
 // CreateExercise creates a new exercise with validation
@@ -125,7 +125,7 @@ func (s *ExerciseService) CreateExercise(ctx context.Context, input CreateExerci
 type UpdateExerciseInput struct {
 	Name    string                     `json:"name" binding:"required,min=1"`
 	Type    string                     `json:"type" binding:"required"`
-	Muscles []repositories.MuscleInput `json:"muscles" binding:"required,min=1,dive"`
+	Muscles []repositories.MuscleInput `json:"muscles" binding:"dive"`
 }
 
 // UpdateExercise updates an existing exercise with validation

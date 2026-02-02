@@ -57,11 +57,11 @@ type MuscleExerciseArea struct {
 type ExerciseType string
 
 const (
-	ExerciseTypeReps         ExerciseType = "Reps"
-	ExerciseTypeIso          ExerciseType = "Iso"
-	ExerciseTypeEscc         ExerciseType = "Escc"
-	ExerciseTypeRepsWeighted ExerciseType = "Reps Weighted"
-	ExerciseTypeIsoWeighted  ExerciseType = "Iso Weighted"
+	ExerciseTypeReps              ExerciseType = "Reps"
+	ExerciseTypeIsometric         ExerciseType = "Isometric"
+	ExerciseTypeEccentric         ExerciseType = "Eccentric"
+	ExerciseTypeRepsWeighted      ExerciseType = "Reps Weighted"
+	ExerciseTypeIsometricWeighted ExerciseType = "Isometric Weighted"
 )
 
 // Exercise represents a specific exercise
