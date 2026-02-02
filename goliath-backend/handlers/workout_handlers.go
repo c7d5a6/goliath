@@ -330,3 +330,36 @@ func (h *WorkoutHandlers) RemoveExerciseFromWorkout(c *gin.Context) {
 	})
 }
 
+// GetWorkoutExerciseAreas retrieves exercise areas for a workout
+func (h *WorkoutHandlers) GetWorkoutExerciseAreas(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	// Get user from context
+	user, hasUser := middleware.GetUserFromContext(ctx)
+	if !hasUser {
+		c.JSON(401, gin.H{"error": "Authentication required"})
+		return
+	}
+
+	// Get workout ID from URL
+	workoutID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(400, gin.H{"error": "Invalid workout ID"})
+		return
+	}
+
+	// Get exercise areas
+	areas, err := h.workoutService.GetWorkoutExerciseAreas(ctx, workoutID, user.ID)
+	if err != nil {
+		if err.Error() == "unauthorized: workout does not belong to user" {
+			c.JSON(403, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"exercise_areas": areas,
+	})
+}

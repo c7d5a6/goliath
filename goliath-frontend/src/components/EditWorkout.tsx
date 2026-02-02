@@ -24,6 +24,12 @@ interface WorkoutExercise {
   notes?: string
 }
 
+interface ExerciseArea {
+  exercise_area_id: number
+  exercise_area_name: string
+  percentage: number
+}
+
 interface Exercise {
   id: number
   name: string
@@ -44,6 +50,11 @@ async function fetchAllExercises() {
   return data.exercises
 }
 
+async function fetchWorkoutExerciseAreas(id: number) {
+  const data = await apiGet<{ exercise_areas: ExerciseArea[] }>(`/workouts/${id}/exercise-areas`)
+  return data.exercise_areas
+}
+
 export default function EditWorkout() {
   const params = useParams()
   const navigate = useNavigate()
@@ -53,6 +64,7 @@ export default function EditWorkout() {
   const [workout] = createResource(() => workoutId, fetchWorkout)
   const [workoutExercises, { refetch: refetchExercises }] = createResource(() => workoutId, fetchWorkoutExercises)
   const [allExercises] = createResource(fetchAllExercises)
+  const [workoutExerciseAreas, { refetch: refetchExerciseAreas }] = createResource(() => workoutId, fetchWorkoutExerciseAreas)
   
   const [name, setName] = createSignal('')
   const [error, setError] = createSignal('')
@@ -62,6 +74,7 @@ export default function EditWorkout() {
   const [searchExercise, setSearchExercise] = createSignal('')
   const [showExerciseSearch, setShowExerciseSearch] = createSignal(false)
   const [editingExercise, setEditingExercise] = createSignal<WorkoutExercise | null>(null)
+  const [showAllAreas, setShowAllAreas] = createSignal(false)
 
   // Initialize form with workout data when loaded
   createEffect(() => {
@@ -80,6 +93,20 @@ export default function EditWorkout() {
       .filter(e => !existingIds.includes(e.id))
       .filter(e => !query || e.name.toLowerCase().includes(query))
       .slice(0, 10)
+  }
+
+  // Split exercise areas into primary (within 25% of max) and secondary
+  const splitExerciseAreas = () => {
+    const areas = workoutExerciseAreas() || []
+    if (areas.length === 0) return { primary: [], secondary: [] }
+    
+    const maxPercentage = areas[0].percentage // Already sorted descending
+    const threshold = maxPercentage - 25
+    
+    const primary = areas.filter(area => area.percentage >= threshold)
+    const secondary = areas.filter(area => area.percentage < threshold)
+    
+    return { primary, secondary }
   }
 
   // Calculate total workout time
@@ -117,6 +144,7 @@ export default function EditWorkout() {
     const seconds = totalSeconds % 60
     return `${minutes}:${seconds.toString().padStart(2, '0')}`
   }
+
 
   const handleSubmit = async (e: Event) => {
     e.preventDefault()
@@ -166,6 +194,7 @@ export default function EditWorkout() {
       setSearchExercise('')
       setShowExerciseSearch(false)
       refetchExercises()
+      refetchExerciseAreas()
     } catch (err: any) {
       setError(err.message || 'Failed to add exercise')
     }
@@ -188,6 +217,7 @@ export default function EditWorkout() {
       
       setEditingExercise(null)
       refetchExercises()
+      refetchExerciseAreas()
     } catch (err: any) {
       setError(err.message || 'Failed to update exercise')
     }
@@ -199,6 +229,7 @@ export default function EditWorkout() {
     try {
       await apiDelete(`/workouts/${workoutId}/exercises/${workoutExerciseId}`)
       refetchExercises()
+      refetchExerciseAreas()
     } catch (err: any) {
       setError(err.message || 'Failed to remove exercise')
     }
@@ -354,6 +385,78 @@ export default function EditWorkout() {
                 </button>
               </div>
             </form>
+
+            {/* Exercise Areas Summary */}
+            <Show when={(workoutExercises() || []).length > 0 && (workoutExerciseAreas() || []).length > 0}>
+              <div class="border-t border-slate-200 pt-6">
+                <h3 class="text-lg font-semibold text-slate-900 mb-4">Targeted Exercise Areas</h3>
+                <div class="bg-slate-50 rounded-lg p-5 border border-slate-200">
+                  {/* Primary areas (within 25% of max) */}
+                  <div class="flex flex-wrap gap-2.5">
+                    <For each={splitExerciseAreas().primary}>
+                      {(area) => (
+                        <div class="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+                          <span class="font-medium text-slate-700 text-sm">{area.exercise_area_name}</span>
+                          <div class="flex items-center gap-1.5">
+                            <div class="h-1.5 w-14 bg-slate-200 rounded-full overflow-hidden">
+                              <div 
+                                class="h-full bg-slate-600 rounded-full transition-all"
+                                style={{ width: `${Math.min(area.percentage, 100)}%` }}
+                              />
+                            </div>
+                            <span class="text-xs font-semibold text-slate-600 min-w-[2rem] text-right">
+                              {Math.round(area.percentage)}%
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </For>
+                  </div>
+
+                  {/* Secondary areas (below 25% threshold) - collapsible */}
+                  <Show when={splitExerciseAreas().secondary.length > 0}>
+                    <div class="mt-3 pt-3 border-t border-slate-200">
+                      <button
+                        onClick={() => setShowAllAreas(!showAllAreas())}
+                        class="text-xs text-slate-500 hover:text-slate-700 font-medium flex items-center gap-1.5 transition-colors"
+                      >
+                        <span class="text-[10px]">{showAllAreas() ? '▼' : '▶'}</span>
+                        <span>
+                          {showAllAreas() ? 'Hide' : 'Show all'} ({splitExerciseAreas().secondary.length} more)
+                        </span>
+                      </button>
+                      
+                      <Show when={showAllAreas()}>
+                        <div class="flex flex-wrap gap-2.5 mt-3">
+                          <For each={splitExerciseAreas().secondary}>
+                            {(area) => (
+                              <div class="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg border border-slate-200 opacity-60">
+                                <span class="font-medium text-slate-600 text-sm">{area.exercise_area_name}</span>
+                                <div class="flex items-center gap-1.5">
+                                  <div class="h-1.5 w-14 bg-slate-200 rounded-full overflow-hidden">
+                                    <div 
+                                      class="h-full bg-slate-400 rounded-full transition-all"
+                                      style={{ width: `${Math.min(area.percentage, 100)}%` }}
+                                    />
+                                  </div>
+                                  <span class="text-xs font-semibold text-slate-500 min-w-[2rem] text-right">
+                                    {Math.round(area.percentage)}%
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+                          </For>
+                        </div>
+                      </Show>
+                    </div>
+                  </Show>
+
+                  <div class="mt-3 text-xs text-slate-500 italic">
+                    Mean activation across all exercises in this workout
+                  </div>
+                </div>
+              </div>
+            </Show>
 
             {/* Exercises Section */}
             <div class="border-t border-slate-200 pt-6">

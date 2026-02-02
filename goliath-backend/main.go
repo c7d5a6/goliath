@@ -120,6 +120,7 @@ func main() {
 		auth.POST("/workouts/:id/exercises", workoutHandlers.AddExerciseToWorkout)
 		auth.PUT("/workouts/:id/exercises/:exercise_id", workoutHandlers.UpdateWorkoutExercise)
 		auth.DELETE("/workouts/:id/exercises/:exercise_id", workoutHandlers.RemoveExerciseFromWorkout)
+		auth.GET("/workouts/:id/exercise-areas", workoutHandlers.GetWorkoutExerciseAreas)
 	}
 
 	// Admin-only routes

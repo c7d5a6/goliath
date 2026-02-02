@@ -230,3 +230,17 @@ func (s *WorkoutService) RemoveExerciseFromWorkout(ctx context.Context, workoutE
 
 	return nil
 }
+
+// GetWorkoutExerciseAreas retrieves exercise areas with mean percentages for a workout
+func (s *WorkoutService) GetWorkoutExerciseAreas(ctx context.Context, workoutID int, userID int) ([]entities.ExerciseAreaSummary, error) {
+	// Verify workout belongs to user
+	workout, err := s.workoutRepo.GetByID(ctx, workoutID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workout: %w", err)
+	}
+	if workout.UserID != userID {
+		return nil, fmt.Errorf("unauthorized: workout does not belong to user")
+	}
+
+	return s.workoutRepo.GetExerciseAreasForWorkout(ctx, workoutID)
+}

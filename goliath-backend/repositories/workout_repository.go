@@ -170,3 +170,55 @@ func (r *WorkoutRepository) Delete(ctx context.Context, id int) error {
 	_, err = executor.ExecContext(ctx, `DELETE FROM workout WHERE id = ?`, id)
 	return err
 }
+
+// GetExerciseAreasForWorkout retrieves exercise areas with mean percentages for a workout
+func (r *WorkoutRepository) GetExerciseAreasForWorkout(ctx context.Context, workoutID int) ([]entities.ExerciseAreaSummary, error) {
+	executor, err := r.GetExecutor(ctx)
+	if err != nil {
+		return nil, err
+	}
+	
+	// This query:
+	// 1. Gets all exercises in the workout
+	// 2. Joins to exercise_muscle to get muscles for each exercise
+	// 3. Joins to muscle_exercise_area to get exercise areas
+	// 4. Groups by exercise area and calculates the mean percentage across all exercises
+	rows, err := executor.QueryContext(ctx, `
+		SELECT
+			ea.id as exercise_area_id,
+			ea.name as exercise_area_name,
+			AVG(em.percentage) as avg_percentage
+		FROM workout_exercise we
+		JOIN exercise_muscle em ON we.exercise_id = em.exercise_id
+		JOIN muscle m ON em.muscle_id = m.id
+		JOIN muscle_exercise_area mea ON m.id = mea.muscle_id
+		JOIN exercise_area ea ON mea.exercise_area_id = ea.id
+		WHERE we.workout_id = ?
+		GROUP BY ea.id, ea.name
+		ORDER BY avg_percentage DESC
+	`, workoutID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	areas := []entities.ExerciseAreaSummary{}
+	for rows.Next() {
+		var area entities.ExerciseAreaSummary
+		err := rows.Scan(
+			&area.ExerciseAreaID,
+			&area.ExerciseAreaName,
+			&area.Percentage,
+		)
+		if err != nil {
+			return nil, err
+		}
+		areas = append(areas, area)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return areas, nil
+}
