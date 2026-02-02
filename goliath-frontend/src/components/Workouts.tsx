@@ -3,11 +3,26 @@ import { A } from '@solidjs/router'
 import { apiGet, apiDelete } from '../api'
 import { useAuth } from '../auth'
 
+interface WorkoutExercise {
+  id: number
+  exercise_id: number
+  exercise_name: string
+  exercise_type: string
+  position: number
+  sets?: number
+  reps?: number
+  time_seconds?: number
+  weight?: number
+  rest_seconds?: number
+  notes?: string
+}
+
 interface Workout {
   id: number
   name: string
   created_when: string
   modified_when: string
+  exercises?: WorkoutExercise[]
 }
 
 interface WorkoutsResponse {
@@ -16,7 +31,21 @@ interface WorkoutsResponse {
 }
 
 async function fetchWorkouts(): Promise<WorkoutsResponse> {
-  return apiGet<WorkoutsResponse>('/workouts')
+  const response = await apiGet<WorkoutsResponse>('/workouts')
+  
+  // Fetch exercises for each workout
+  const workoutsWithExercises = await Promise.all(
+    response.workouts.map(async (workout) => {
+      try {
+        const exercisesData = await apiGet<{ exercises: WorkoutExercise[] }>(`/workouts/${workout.id}/exercises`)
+        return { ...workout, exercises: exercisesData.exercises }
+      } catch {
+        return { ...workout, exercises: [] }
+      }
+    })
+  )
+  
+  return { ...response, workouts: workoutsWithExercises }
 }
 
 export default function Workouts() {
@@ -45,18 +74,6 @@ export default function Workouts() {
       alert(`Failed to delete workout: ${err.message}`)
     } finally {
       setDeletingId(null)
-    }
-  }
-
-  const formatDate = (dateStr: string) => {
-    try {
-      return new Date(dateStr).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      })
-    } catch {
-      return dateStr
     }
   }
 
@@ -153,87 +170,176 @@ export default function Workouts() {
             </Show>
 
             <Show when={filteredWorkouts().length > 0}>
-              {/* Desktop Table View */}
-              <div class="hidden sm:block overflow-x-auto">
-                <table class="w-full text-sm">
-                  <thead class="bg-gradient-to-b from-slate-50 to-slate-100 sticky top-0">
-                    <tr>
-                      <th class="px-4 py-3 text-left font-semibold text-slate-700 border-b-2 border-slate-200 text-xs uppercase tracking-wide">
-                        #
-                      </th>
-                      <th class="px-4 py-3 text-left font-semibold text-slate-700 border-b-2 border-slate-200 text-xs uppercase tracking-wide">
-                        Workout Name
-                      </th>
-                      <th class="px-4 py-3 text-left font-semibold text-slate-700 border-b-2 border-slate-200 text-xs uppercase tracking-wide">
-                        Created
-                      </th>
-                      <th class="px-4 py-3 text-left font-semibold text-slate-700 border-b-2 border-slate-200 text-xs uppercase tracking-wide">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody class="divide-y divide-slate-100">
-                    <For each={filteredWorkouts()}>
-                      {(workout) => (
-                        <tr class="hover:bg-primary-50 transition-colors">
-                          <td class="px-4 py-3 text-slate-400 text-sm">
-                            {workout.id}
-                          </td>
-                          <td class="px-4 py-3">
-                            <A 
-                              href={`/workouts/${workout.id}/edit`}
-                              class="font-semibold text-primary-600 hover:text-primary-700 hover:underline transition-colors cursor-pointer"
-                            >
-                              {workout.name}
-                            </A>
-                          </td>
-                          <td class="px-4 py-3 text-slate-600 text-sm">
-                            {formatDate(workout.created_when)}
-                          </td>
-                          <td class="px-4 py-3">
-                            <button
-                              onClick={() => handleDelete(workout.id, workout.name)}
-                              disabled={deletingId() === workout.id}
-                              class="px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded transition-colors
-                                     disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              {deletingId() === workout.id ? 'Deleting...' : 'Delete'}
-                            </button>
-                          </td>
-                        </tr>
-                      )}
-                    </For>
-                  </tbody>
-                </table>
+              {/* Desktop View */}
+              <div class="hidden sm:block divide-y divide-slate-200">
+                <For each={filteredWorkouts()}>
+                  {(workout) => (
+                    <div class="p-6 hover:bg-slate-50 transition-colors">
+                      <div class="flex items-start justify-between gap-4 mb-4">
+                        <div class="flex-1">
+                          <A 
+                            href={`/workouts/${workout.id}/edit`}
+                            class="text-lg font-bold text-primary-600 hover:text-primary-700 hover:underline transition-colors cursor-pointer inline-block"
+                          >
+                            {workout.name}
+                          </A>
+                        </div>
+                        <button
+                          onClick={() => handleDelete(workout.id, workout.name)}
+                          disabled={deletingId() === workout.id}
+                          class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-all
+                                 disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Delete workout"
+                        >
+                          <Show when={deletingId() === workout.id}>
+                            <div class="w-5 h-5 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+                          </Show>
+                          <Show when={deletingId() !== workout.id}>
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </Show>
+                        </button>
+                      </div>
+                      
+                      {/* Exercises List */}
+                      <Show when={(workout.exercises || []).length > 0}>
+                        <div class="space-y-1.5">
+                          <For each={workout.exercises}>
+                            {(ex) => (
+                              <div class="flex items-center gap-3 p-2 bg-white border border-slate-200 rounded-lg hover:border-slate-300 transition-colors">
+                                <div class="flex-1 flex items-center gap-3 flex-wrap min-w-0">
+                                  <div class="flex items-center gap-2 min-w-0">
+                                    <div class="font-medium text-slate-900 text-sm truncate">{ex.exercise_name}</div>
+                                    <div class="text-xs text-slate-400 flex-shrink-0">·</div>
+                                    <div class="text-xs text-slate-500 flex-shrink-0">{ex.exercise_type}</div>
+                                  </div>
+                                  <div class="flex items-center gap-1.5 flex-wrap">
+                                    <Show when={ex.sets}>
+                                      <span class="px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-medium whitespace-nowrap">
+                                        {ex.sets}×
+                                      </span>
+                                    </Show>
+                                    <Show when={ex.reps}>
+                                      <span class="px-1.5 py-0.5 bg-green-50 text-green-700 rounded text-xs font-medium whitespace-nowrap">
+                                        {ex.reps} reps
+                                      </span>
+                                    </Show>
+                                    <Show when={ex.time_seconds}>
+                                      <span class="px-1.5 py-0.5 bg-purple-50 text-purple-700 rounded text-xs font-medium whitespace-nowrap">
+                                        {ex.time_seconds}s
+                                      </span>
+                                    </Show>
+                                    <Show when={ex.weight}>
+                                      <span class="px-1.5 py-0.5 bg-orange-50 text-orange-700 rounded text-xs font-medium whitespace-nowrap">
+                                        {ex.weight}kg
+                                      </span>
+                                    </Show>
+                                    <Show when={ex.rest_seconds}>
+                                      <span class="px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded text-xs font-medium whitespace-nowrap">
+                                        ↻ {ex.rest_seconds}s
+                                      </span>
+                                    </Show>
+                                  </div>
+                                </div>
+                                <Show when={ex.notes}>
+                                  <div class="text-xs text-slate-500 italic flex-shrink-0 max-w-xs truncate" title={ex.notes}>
+                                    "{ex.notes}"
+                                  </div>
+                                </Show>
+                              </div>
+                            )}
+                          </For>
+                        </div>
+                      </Show>
+                      
+                      <Show when={(workout.exercises || []).length === 0}>
+                        <div class="text-sm text-slate-400 italic">No exercises added yet</div>
+                      </Show>
+                    </div>
+                  )}
+                </For>
               </div>
 
-              {/* Mobile Cards View */}
-              <div class="sm:hidden p-4 space-y-3">
+              {/* Mobile View */}
+              <div class="sm:hidden p-4 space-y-4">
                 <For each={filteredWorkouts()}>
                   {(workout) => (
                     <div class="bg-white border border-slate-200 rounded-lg p-4 hover:border-primary-300 hover:shadow-md transition-all">
-                      <div class="flex justify-between items-start gap-3 mb-3">
+                      <div class="flex justify-between items-start gap-3 mb-4">
                         <A 
                           href={`/workouts/${workout.id}/edit`}
-                          class="font-semibold text-primary-600 flex-1"
+                          class="font-bold text-primary-600 flex-1 text-lg"
                         >
                           {workout.name}
                         </A>
-                        <span class="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded flex-shrink-0">
-                          #{workout.id}
-                        </span>
+                        <button
+                          onClick={() => handleDelete(workout.id, workout.name)}
+                          disabled={deletingId() === workout.id}
+                          class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-all flex-shrink-0
+                                 disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Delete workout"
+                        >
+                          <Show when={deletingId() === workout.id}>
+                            <div class="w-5 h-5 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+                          </Show>
+                          <Show when={deletingId() !== workout.id}>
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </Show>
+                        </button>
                       </div>
-                      <div class="text-xs text-slate-500 mb-3">
-                        Created: {formatDate(workout.created_when)}
-                      </div>
-                      <button
-                        onClick={() => handleDelete(workout.id, workout.name)}
-                        disabled={deletingId() === workout.id}
-                        class="w-full px-3 py-2 text-sm text-red-600 bg-red-50 hover:bg-red-100 rounded transition-colors
-                               disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {deletingId() === workout.id ? 'Deleting...' : 'Delete Workout'}
-                      </button>
+                      
+                      {/* Exercises List */}
+                      <Show when={(workout.exercises || []).length > 0}>
+                        <div class="space-y-1.5">
+                          <For each={workout.exercises}>
+                            {(ex) => (
+                              <div class="p-2 bg-slate-50 border border-slate-200 rounded-lg">
+                                <div class="flex items-center gap-2 mb-1.5">
+                                  <div class="font-medium text-slate-900 text-sm flex-1 truncate">{ex.exercise_name}</div>
+                                  <div class="text-xs text-slate-500 flex-shrink-0">{ex.exercise_type}</div>
+                                </div>
+                                <div class="flex flex-wrap gap-1.5">
+                                  <Show when={ex.sets}>
+                                    <span class="px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-medium">
+                                      {ex.sets}×
+                                    </span>
+                                  </Show>
+                                  <Show when={ex.reps}>
+                                    <span class="px-1.5 py-0.5 bg-green-50 text-green-700 rounded text-xs font-medium">
+                                      {ex.reps} reps
+                                    </span>
+                                  </Show>
+                                  <Show when={ex.time_seconds}>
+                                    <span class="px-1.5 py-0.5 bg-purple-50 text-purple-700 rounded text-xs font-medium">
+                                      {ex.time_seconds}s
+                                    </span>
+                                  </Show>
+                                  <Show when={ex.weight}>
+                                    <span class="px-1.5 py-0.5 bg-orange-50 text-orange-700 rounded text-xs font-medium">
+                                      {ex.weight}kg
+                                    </span>
+                                  </Show>
+                                  <Show when={ex.rest_seconds}>
+                                    <span class="px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded text-xs font-medium">
+                                      ↻ {ex.rest_seconds}s
+                                    </span>
+                                  </Show>
+                                </div>
+                                <Show when={ex.notes}>
+                                  <div class="text-xs text-slate-600 mt-1.5 italic line-clamp-1">"{ex.notes}"</div>
+                                </Show>
+                              </div>
+                            )}
+                          </For>
+                        </div>
+                      </Show>
+                      
+                      <Show when={(workout.exercises || []).length === 0}>
+                        <div class="text-sm text-slate-400 italic">No exercises added yet</div>
+                      </Show>
                     </div>
                   )}
                 </For>

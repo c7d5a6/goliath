@@ -453,7 +453,7 @@ export default function EditWorkout() {
                             </button>
                           </div>
                           
-                          <div class="flex-1">
+                          <div class="flex-1 min-w-0">
                             <div class="font-semibold text-slate-900">{ex.exercise_name}</div>
                             <div class="text-xs text-slate-500 mb-2">{ex.exercise_type}</div>
                             <div class="flex flex-wrap gap-2 text-sm">
@@ -487,18 +487,26 @@ export default function EditWorkout() {
                               <div class="text-xs text-slate-600 mt-2 italic">{ex.notes}</div>
                             </Show>
                           </div>
-                          <div class="flex gap-2">
+                          
+                          {/* Action buttons */}
+                          <div class="flex flex-col gap-1">
                             <button
                               onClick={() => setEditingExercise(ex)}
-                              class="px-3 py-1 text-sm text-primary-600 hover:bg-primary-50 rounded"
+                              class="w-7 h-7 flex items-center justify-center text-primary-500 hover:text-primary-700 hover:bg-primary-50 rounded transition-colors"
+                              title="Edit exercise"
                             >
-                              Edit
+                              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
                             </button>
                             <button
                               onClick={() => handleRemoveExercise(ex.id)}
-                              class="px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded"
+                              class="w-7 h-7 flex items-center justify-center text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                              title="Remove exercise"
                             >
-                              Remove
+                              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
                             </button>
                           </div>
                         </div>
@@ -517,7 +525,7 @@ export default function EditWorkout() {
                                 <input
                                   type="number"
                                   value={editingExercise()?.sets || ''}
-                                  onInput={(e) => setEditingExercise({ ...ex, sets: parseInt(e.currentTarget.value) || undefined })}
+                                  onInput={(e) => setEditingExercise(prev => ({ ...prev!, sets: parseInt(e.currentTarget.value) || undefined }))}
                                   class="w-full px-3 py-2 border border-slate-200 rounded text-sm"
                                   min="1"
                                 />
@@ -531,7 +539,7 @@ export default function EditWorkout() {
                                 <input
                                   type="number"
                                   value={editingExercise()?.reps || ''}
-                                  onInput={(e) => setEditingExercise({ ...ex, reps: parseInt(e.currentTarget.value) || undefined })}
+                                  onInput={(e) => setEditingExercise(prev => ({ ...prev!, reps: parseInt(e.currentTarget.value) || undefined }))}
                                   class="w-full px-3 py-2 border border-slate-200 rounded text-sm"
                                   min="1"
                                 />
@@ -545,7 +553,7 @@ export default function EditWorkout() {
                                 <input
                                   type="number"
                                   value={editingExercise()?.time_seconds || ''}
-                                  onInput={(e) => setEditingExercise({ ...ex, time_seconds: parseInt(e.currentTarget.value) || undefined })}
+                                  onInput={(e) => setEditingExercise(prev => ({ ...prev!, time_seconds: parseInt(e.currentTarget.value) || undefined }))}
                                   class="w-full px-3 py-2 border border-slate-200 rounded text-sm"
                                   min="1"
                                 />
@@ -560,7 +568,7 @@ export default function EditWorkout() {
                                   type="number"
                                   step="0.5"
                                   value={editingExercise()?.weight || ''}
-                                  onInput={(e) => setEditingExercise({ ...ex, weight: parseFloat(e.currentTarget.value) || undefined })}
+                                  onInput={(e) => setEditingExercise(prev => ({ ...prev!, weight: parseFloat(e.currentTarget.value) || undefined }))}
                                   class="w-full px-3 py-2 border border-slate-200 rounded text-sm"
                                   min="0"
                                 />
@@ -574,7 +582,7 @@ export default function EditWorkout() {
                                 <input
                                   type="number"
                                   value={editingExercise()?.rest_seconds || ''}
-                                  onInput={(e) => setEditingExercise({ ...ex, rest_seconds: parseInt(e.currentTarget.value) || undefined })}
+                                  onInput={(e) => setEditingExercise(prev => ({ ...prev!, rest_seconds: parseInt(e.currentTarget.value) || undefined }))}
                                   class="w-full px-3 py-2 border border-slate-200 rounded text-sm"
                                   min="0"
                                 />
@@ -586,7 +594,7 @@ export default function EditWorkout() {
                             <input
                               type="text"
                               value={editingExercise()?.notes || ''}
-                              onInput={(e) => setEditingExercise({ ...ex, notes: e.currentTarget.value || undefined })}
+                              onInput={(e) => setEditingExercise(prev => ({ ...prev!, notes: e.currentTarget.value || undefined }))}
                               class="w-full px-3 py-2 border border-slate-200 rounded text-sm"
                               placeholder="Optional notes..."
                             />
