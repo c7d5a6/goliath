@@ -82,6 +82,42 @@ export default function EditWorkout() {
       .slice(0, 10)
   }
 
+  // Calculate total workout time
+  const totalWorkoutTime = () => {
+    const exercises = workoutExercises() || []
+    let totalSeconds = 0
+
+    for (const ex of exercises) {
+      const sets = ex.sets || 0
+      const reps = ex.reps || 0
+      const timeSeconds = ex.time_seconds || 0
+      const restSeconds = ex.rest_seconds || 0
+
+      // Calculate rest time: rest_seconds * sets
+      const totalRestTime = restSeconds * sets
+
+      // Calculate exercise time based on type
+      let exerciseTime = 0
+      if (ex.exercise_type === 'Isometric' || ex.exercise_type === 'Isometric Weighted') {
+        // Isometric exercises use the time field, multiplied by sets
+        exerciseTime = timeSeconds * sets
+      } else {
+        // Reps-based exercises: reps * 3 seconds * sets
+        exerciseTime = reps * 3 * sets
+      }
+
+      totalSeconds += totalRestTime + exerciseTime
+    }
+
+    // Add 10% for error
+    totalSeconds = Math.round(totalSeconds * 1.1)
+
+    // Format as minutes:seconds
+    const minutes = Math.floor(totalSeconds / 60)
+    const seconds = totalSeconds % 60
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`
+  }
+
   const handleSubmit = async (e: Event) => {
     e.preventDefault()
     setError('')
@@ -322,7 +358,17 @@ export default function EditWorkout() {
             {/* Exercises Section */}
             <div class="border-t border-slate-200 pt-6">
               <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-semibold text-slate-900">Exercises</h3>
+                <div class="flex items-center gap-3">
+                  <h3 class="text-lg font-semibold text-slate-900">Exercises</h3>
+                  <Show when={(workoutExercises() || []).length > 0}>
+                    <div class="px-3 py-1 bg-primary-50 text-primary-700 rounded-full text-sm font-medium flex items-center gap-1.5">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      {totalWorkoutTime()}
+                    </div>
+                  </Show>
+                </div>
                 <button
                   onClick={() => setShowExerciseSearch(!showExerciseSearch())}
                   class="px-4 py-2 bg-accent-500 text-white rounded-lg text-sm font-medium
