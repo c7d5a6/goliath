@@ -73,8 +73,10 @@ func (s *ExerciseService) GetExerciseByID(ctx context.Context, id int) (*entitie
 func (s *ExerciseService) GetExerciseTypes() []string {
 	return []string{
 		string(entities.ExerciseTypeReps),
-		string(entities.ExerciseTypeEccentric),
-		string(entities.ExerciseTypeIsometric),
+		string(entities.ExerciseTypeIso),
+		string(entities.ExerciseTypeEscc),
+		string(entities.ExerciseTypeRepsWeighted),
+		string(entities.ExerciseTypeIsoWeighted),
 	}
 }
 

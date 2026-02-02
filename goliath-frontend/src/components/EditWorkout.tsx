@@ -20,6 +20,7 @@ interface WorkoutExercise {
   reps?: number
   time_seconds?: number
   weight?: number
+  rest_seconds?: number
   notes?: string
 }
 
@@ -104,6 +105,13 @@ export default function EditWorkout() {
     }
   }
 
+  // Helper functions to determine which fields to show for each exercise type
+  const showSets = (type: string) => ['Reps', 'Iso', 'Escc', 'Reps Weighted', 'Iso Weighted'].includes(type)
+  const showReps = (type: string) => ['Reps', 'Escc', 'Reps Weighted'].includes(type)
+  const showWeight = (type: string) => ['Reps Weighted', 'Iso Weighted'].includes(type)
+  const showTime = (type: string) => ['Iso', 'Iso Weighted'].includes(type)
+  const showRest = (type: string) => ['Reps', 'Iso', 'Escc', 'Reps Weighted', 'Iso Weighted'].includes(type)
+
   const handleAddExercise = async (exercise: Exercise) => {
     try {
       const exercises = workoutExercises() || []
@@ -112,9 +120,11 @@ export default function EditWorkout() {
       await apiPost(`/workouts/${workoutId}/exercises`, {
         exercise_id: exercise.id,
         position: position,
-        sets: exercise.type === 'Reps' ? 3 : undefined,
-        reps: exercise.type === 'Reps' ? 10 : undefined,
-        time_seconds: exercise.type !== 'Reps' ? 30 : undefined,
+        sets: showSets(exercise.type) ? 3 : undefined,
+        reps: showReps(exercise.type) ? 10 : undefined,
+        time_seconds: showTime(exercise.type) ? 30 : undefined,
+        weight: showWeight(exercise.type) ? 0 : undefined,
+        rest_seconds: showRest(exercise.type) ? 60 : undefined,
       })
       
       setSearchExercise('')
@@ -136,6 +146,7 @@ export default function EditWorkout() {
         reps: ex.reps,
         time_seconds: ex.time_seconds,
         weight: ex.weight,
+        rest_seconds: ex.rest_seconds,
         notes: ex.notes,
       })
       
@@ -362,6 +373,11 @@ export default function EditWorkout() {
                                   {ex.weight} kg
                                 </span>
                               </Show>
+                              <Show when={ex.rest_seconds}>
+                                <span class="px-2 py-0.5 bg-slate-50 text-slate-700 rounded">
+                                  Rest: {ex.rest_seconds}s
+                                </span>
+                              </Show>
                             </div>
                             <Show when={ex.notes}>
                               <div class="text-xs text-slate-600 mt-2 italic">{ex.notes}</div>
@@ -386,9 +402,12 @@ export default function EditWorkout() {
 
                       <Show when={editingExercise()?.id === ex.id}>
                         <div class="space-y-3">
-                          <div class="font-semibold text-slate-900 mb-3">{ex.exercise_name}</div>
+                          <div class="font-semibold text-slate-900 mb-3">
+                            {ex.exercise_name} <span class="text-xs text-slate-500">({ex.exercise_type})</span>
+                          </div>
                           <div class="grid grid-cols-2 gap-3">
-                            <Show when={ex.exercise_type === 'Reps'}>
+                            {/* Sets - for all types */}
+                            <Show when={showSets(ex.exercise_type)}>
                               <div>
                                 <label class="block text-xs font-medium text-slate-700 mb-1">Sets</label>
                                 <input
@@ -399,6 +418,10 @@ export default function EditWorkout() {
                                   min="1"
                                 />
                               </div>
+                            </Show>
+                            
+                            {/* Reps - for Reps, Escc, Reps Weighted */}
+                            <Show when={showReps(ex.exercise_type)}>
                               <div>
                                 <label class="block text-xs font-medium text-slate-700 mb-1">Reps</label>
                                 <input
@@ -410,7 +433,9 @@ export default function EditWorkout() {
                                 />
                               </div>
                             </Show>
-                            <Show when={ex.exercise_type !== 'Reps'}>
+                            
+                            {/* Time - for Iso, Iso Weighted */}
+                            <Show when={showTime(ex.exercise_type)}>
                               <div>
                                 <label class="block text-xs font-medium text-slate-700 mb-1">Time (seconds)</label>
                                 <input
@@ -422,17 +447,35 @@ export default function EditWorkout() {
                                 />
                               </div>
                             </Show>
-                            <div>
-                              <label class="block text-xs font-medium text-slate-700 mb-1">Weight (kg)</label>
-                              <input
-                                type="number"
-                                step="0.5"
-                                value={editingExercise()?.weight || ''}
-                                onInput={(e) => setEditingExercise({ ...ex, weight: parseFloat(e.currentTarget.value) || undefined })}
-                                class="w-full px-3 py-2 border border-slate-200 rounded text-sm"
-                                min="0"
-                              />
-                            </div>
+                            
+                            {/* Weight - for Reps Weighted, Iso Weighted */}
+                            <Show when={showWeight(ex.exercise_type)}>
+                              <div>
+                                <label class="block text-xs font-medium text-slate-700 mb-1">Weight (kg)</label>
+                                <input
+                                  type="number"
+                                  step="0.5"
+                                  value={editingExercise()?.weight || ''}
+                                  onInput={(e) => setEditingExercise({ ...ex, weight: parseFloat(e.currentTarget.value) || undefined })}
+                                  class="w-full px-3 py-2 border border-slate-200 rounded text-sm"
+                                  min="0"
+                                />
+                              </div>
+                            </Show>
+                            
+                            {/* Rest - for all types */}
+                            <Show when={showRest(ex.exercise_type)}>
+                              <div>
+                                <label class="block text-xs font-medium text-slate-700 mb-1">Rest (seconds)</label>
+                                <input
+                                  type="number"
+                                  value={editingExercise()?.rest_seconds || ''}
+                                  onInput={(e) => setEditingExercise({ ...ex, rest_seconds: parseInt(e.currentTarget.value) || undefined })}
+                                  class="w-full px-3 py-2 border border-slate-200 rounded text-sm"
+                                  min="0"
+                                />
+                              </div>
+                            </Show>
                           </div>
                           <div>
                             <label class="block text-xs font-medium text-slate-700 mb-1">Notes</label>

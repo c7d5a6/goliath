@@ -57,9 +57,11 @@ type MuscleExerciseArea struct {
 type ExerciseType string
 
 const (
-	ExerciseTypeReps      ExerciseType = "Reps"
-	ExerciseTypeEccentric ExerciseType = "Eccentric"
-	ExerciseTypeIsometric ExerciseType = "Isometric"
+	ExerciseTypeReps         ExerciseType = "Reps"
+	ExerciseTypeIso          ExerciseType = "Iso"
+	ExerciseTypeEscc         ExerciseType = "Escc"
+	ExerciseTypeRepsWeighted ExerciseType = "Reps Weighted"
+	ExerciseTypeIsoWeighted  ExerciseType = "Iso Weighted"
 )
 
 // Exercise represents a specific exercise
@@ -111,16 +113,17 @@ type Workout struct {
 // WorkoutExercise represents an exercise within a workout with configuration
 type WorkoutExercise struct {
 	BaseEntity
-	WorkoutID    int     `json:"workout_id" db:"workout_id"`
-	ExerciseID   int     `json:"exercise_id" db:"exercise_id"`
-	ExerciseName string  `json:"exercise_name,omitempty" db:"exercise_name"` // For JOIN queries
-	ExerciseType string  `json:"exercise_type,omitempty" db:"exercise_type"` // For JOIN queries
-	Position     int     `json:"position" db:"position"`
-	Sets         *int    `json:"sets,omitempty" db:"sets"`
-	Reps         *int    `json:"reps,omitempty" db:"reps"`
-	TimeSeconds  *int    `json:"time_seconds,omitempty" db:"time_seconds"`
+	WorkoutID    int      `json:"workout_id" db:"workout_id"`
+	ExerciseID   int      `json:"exercise_id" db:"exercise_id"`
+	ExerciseName string   `json:"exercise_name,omitempty" db:"exercise_name"` // For JOIN queries
+	ExerciseType string   `json:"exercise_type,omitempty" db:"exercise_type"` // For JOIN queries
+	Position     int      `json:"position" db:"position"`
+	Sets         *int     `json:"sets,omitempty" db:"sets"`
+	Reps         *int     `json:"reps,omitempty" db:"reps"`
+	TimeSeconds  *int     `json:"time_seconds,omitempty" db:"time_seconds"`
 	Weight       *float64 `json:"weight,omitempty" db:"weight"`
-	Notes        *string `json:"notes,omitempty" db:"notes"`
+	RestSeconds  *int     `json:"rest_seconds,omitempty" db:"rest_seconds"`
+	Notes        *string  `json:"notes,omitempty" db:"notes"`
 }
 
 // ScanBaseEntity is a helper to scan common fields from database rows
@@ -340,6 +343,7 @@ func ScanWorkoutExercise(rows *sql.Rows) (*WorkoutExercise, error) {
 		&we.Reps,
 		&we.TimeSeconds,
 		&we.Weight,
+		&we.RestSeconds,
 		&we.Notes,
 		&we.ExerciseName,
 		&we.ExerciseType,

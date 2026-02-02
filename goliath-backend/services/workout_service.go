@@ -144,6 +144,7 @@ type AddExerciseToWorkoutInput struct {
 	Reps        *int     `json:"reps,omitempty"`
 	TimeSeconds *int     `json:"time_seconds,omitempty"`
 	Weight      *float64 `json:"weight,omitempty"`
+	RestSeconds *int     `json:"rest_seconds,omitempty"`
 	Notes       *string  `json:"notes,omitempty"`
 }
 
@@ -159,7 +160,7 @@ func (s *WorkoutService) AddExerciseToWorkout(ctx context.Context, workoutID int
 	}
 
 	// Create workout exercise
-	id, err := s.workoutExerciseRepo.Create(ctx, workoutID, input.ExerciseID, input.Position, input.Sets, input.Reps, input.TimeSeconds, input.Weight, input.Notes)
+	id, err := s.workoutExerciseRepo.Create(ctx, workoutID, input.ExerciseID, input.Position, input.Sets, input.Reps, input.TimeSeconds, input.Weight, input.RestSeconds, input.Notes)
 	if err != nil {
 		return 0, fmt.Errorf("failed to add exercise to workout: %w", err)
 	}
@@ -174,6 +175,7 @@ type UpdateWorkoutExerciseInput struct {
 	Reps        *int     `json:"reps,omitempty"`
 	TimeSeconds *int     `json:"time_seconds,omitempty"`
 	Weight      *float64 `json:"weight,omitempty"`
+	RestSeconds *int     `json:"rest_seconds,omitempty"`
 	Notes       *string  `json:"notes,omitempty"`
 }
 
@@ -195,7 +197,7 @@ func (s *WorkoutService) UpdateWorkoutExercise(ctx context.Context, workoutExerc
 	}
 
 	// Update workout exercise
-	err = s.workoutExerciseRepo.Update(ctx, workoutExerciseID, input.Position, input.Sets, input.Reps, input.TimeSeconds, input.Weight, input.Notes)
+	err = s.workoutExerciseRepo.Update(ctx, workoutExerciseID, input.Position, input.Sets, input.Reps, input.TimeSeconds, input.Weight, input.RestSeconds, input.Notes)
 	if err != nil {
 		return fmt.Errorf("failed to update workout exercise: %w", err)
 	}
