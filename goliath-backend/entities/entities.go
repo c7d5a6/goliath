@@ -126,6 +126,24 @@ type WorkoutExercise struct {
 	Notes        *string  `json:"notes,omitempty" db:"notes"`
 }
 
+// ExerciseLog represents a logged/completed exercise
+type ExerciseLog struct {
+	BaseEntity
+	UserID       int       `json:"user_id" db:"user_id"`
+	WorkoutID    *int      `json:"workout_id,omitempty" db:"workout_id"` // Nullable - can be null if workout is deleted
+	ExerciseID   int       `json:"exercise_id" db:"exercise_id"`
+	ExerciseName string    `json:"exercise_name,omitempty" db:"exercise_name"` // For JOIN queries
+	ExerciseType string    `json:"exercise_type,omitempty" db:"exercise_type"` // For JOIN queries
+	LoggedWhen   time.Time `json:"logged_when" db:"logged_when"`
+	Position     int       `json:"position" db:"position"`
+	Sets         *int      `json:"sets,omitempty" db:"sets"`
+	Reps         *int      `json:"reps,omitempty" db:"reps"`
+	TimeSeconds  *int      `json:"time_seconds,omitempty" db:"time_seconds"`
+	Weight       *float64  `json:"weight,omitempty" db:"weight"`
+	RestSeconds  *int      `json:"rest_seconds,omitempty" db:"rest_seconds"`
+	Notes        *string   `json:"notes,omitempty" db:"notes"`
+}
+
 // ScanBaseEntity is a helper to scan common fields from database rows
 func ScanBaseEntity(row interface {
 	Scan(dest ...interface{}) error
@@ -355,4 +373,39 @@ func ScanWorkoutExercise(rows *sql.Rows) (*WorkoutExercise, error) {
 	we.CreatedWhen, _ = time.Parse("2006-01-02 15:04:05", createdWhen)
 	we.ModifiedWhen, _ = time.Parse("2006-01-02 15:04:05", modifiedWhen)
 	return &we, nil
+}
+
+// ScanExerciseLog scans an ExerciseLog from a database row with exercise details
+func ScanExerciseLog(rows *sql.Rows) (*ExerciseLog, error) {
+	var el ExerciseLog
+	var createdWhen, modifiedWhen, loggedWhen string
+	err := rows.Scan(
+		&el.ID,
+		&el.Version,
+		&createdWhen,
+		&el.CreatedBy,
+		&modifiedWhen,
+		&el.ModifiedBy,
+		&el.UserID,
+		&el.WorkoutID,
+		&el.ExerciseID,
+		&loggedWhen,
+		&el.Position,
+		&el.Sets,
+		&el.Reps,
+		&el.TimeSeconds,
+		&el.Weight,
+		&el.RestSeconds,
+		&el.Notes,
+		&el.ExerciseName,
+		&el.ExerciseType,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	el.CreatedWhen, _ = time.Parse("2006-01-02 15:04:05", createdWhen)
+	el.ModifiedWhen, _ = time.Parse("2006-01-02 15:04:05", modifiedWhen)
+	el.LoggedWhen, _ = time.Parse("2006-01-02 15:04:05", loggedWhen)
+	return &el, nil
 }

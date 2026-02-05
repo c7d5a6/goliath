@@ -75,6 +75,10 @@ export default function EditWorkout() {
   const [showExerciseSearch, setShowExerciseSearch] = createSignal(false)
   const [editingExercise, setEditingExercise] = createSignal<WorkoutExercise | null>(null)
   const [showAllAreas, setShowAllAreas] = createSignal(false)
+  
+  // Exercise logging state
+  const [loggingExercise, setLoggingExercise] = createSignal<WorkoutExercise | null>(null)
+  const [isLogging, setIsLogging] = createSignal(false)
 
   // Initialize form with workout data when loaded
   createEffect(() => {
@@ -270,6 +274,66 @@ export default function EditWorkout() {
       refetchExercises()
     } catch (err: any) {
       setError(err.message || 'Failed to reorder exercise')
+    }
+  }
+
+  const handleQuickLogExercise = async (exercise: WorkoutExercise) => {
+    setIsLogging(true)
+    try {
+      await apiPost('/exercise-logs', {
+        workout_id: workoutId,
+        exercise_id: exercise.exercise_id,
+        position: exercise.position,
+        sets: exercise.sets,
+        reps: exercise.reps,
+        time_seconds: exercise.time_seconds,
+        weight: exercise.weight,
+        rest_seconds: exercise.rest_seconds,
+        notes: exercise.notes,
+      })
+      
+      // Show success message briefly
+      const successMsg = 'Exercise logged successfully!'
+      setError('')
+      alert(successMsg)
+    } catch (err: any) {
+      setError(err.message || 'Failed to log exercise')
+    } finally {
+      setIsLogging(false)
+    }
+  }
+
+  const handleOpenLogModal = (exercise: WorkoutExercise) => {
+    setLoggingExercise({...exercise})
+  }
+
+  const handleSaveLogExercise = async () => {
+    const ex = loggingExercise()
+    if (!ex) return
+
+    setIsLogging(true)
+    try {
+      await apiPost('/exercise-logs', {
+        workout_id: workoutId,
+        exercise_id: ex.exercise_id,
+        position: ex.position,
+        sets: ex.sets,
+        reps: ex.reps,
+        time_seconds: ex.time_seconds,
+        weight: ex.weight,
+        rest_seconds: ex.rest_seconds,
+        notes: ex.notes,
+      })
+      
+      setLoggingExercise(null)
+      // Show success message briefly
+      const successMsg = 'Exercise logged successfully!'
+      setError('')
+      alert(successMsg)
+    } catch (err: any) {
+      setError(err.message || 'Failed to log exercise')
+    } finally {
+      setIsLogging(false)
     }
   }
 
@@ -592,25 +656,49 @@ export default function EditWorkout() {
                           </div>
                           
                           {/* Action buttons */}
-                          <div class="flex flex-col gap-1">
-                            <button
-                              onClick={() => setEditingExercise(ex)}
-                              class="w-7 h-7 flex items-center justify-center text-primary-500 hover:text-primary-700 hover:bg-primary-50 rounded transition-colors"
-                              title="Edit exercise"
-                            >
-                              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                              </svg>
-                            </button>
-                            <button
-                              onClick={() => handleRemoveExercise(ex.id)}
-                              class="w-7 h-7 flex items-center justify-center text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
-                              title="Remove exercise"
-                            >
-                              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </button>
+                          <div class="flex gap-2">
+                            <div class="flex flex-col gap-1">
+                              <button
+                                onClick={() => setEditingExercise(ex)}
+                                class="w-7 h-7 flex items-center justify-center text-primary-500 hover:text-primary-700 hover:bg-primary-50 rounded transition-colors"
+                                title="Edit exercise"
+                              >
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                              </button>
+                              <button
+                                onClick={() => handleRemoveExercise(ex.id)}
+                                class="w-7 h-7 flex items-center justify-center text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                                title="Remove exercise"
+                              >
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
+                            </div>
+                            <div class="flex flex-col gap-1">
+                              <button
+                                onClick={() => handleQuickLogExercise(ex)}
+                                disabled={isLogging()}
+                                class="w-7 h-7 flex items-center justify-center text-green-500 hover:text-green-700 hover:bg-green-50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Quick log (save with current params)"
+                              >
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                </svg>
+                              </button>
+                              <button
+                                onClick={() => handleOpenLogModal(ex)}
+                                disabled={isLogging()}
+                                class="w-7 h-7 flex items-center justify-center text-accent-500 hover:text-accent-700 hover:bg-accent-50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Log with edits"
+                              >
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </Show>
@@ -725,6 +813,151 @@ export default function EditWorkout() {
             </div>
           </div>
         </Show>
+      </Show>
+
+      {/* Exercise Log Modal */}
+      <Show when={loggingExercise()}>
+        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-slate-200 bg-gradient-to-r from-accent-50 to-primary-50">
+              <h3 class="text-xl font-bold text-slate-900">Log Exercise</h3>
+              <p class="text-sm text-slate-600 mt-1">Edit parameters before logging</p>
+            </div>
+            
+            <div class="p-6">
+              <Show when={error()}>
+                <div class="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start gap-3">
+                  <span class="text-lg">⚠️</span>
+                  <div class="flex-1">
+                    <p class="font-medium">Error</p>
+                    <p class="text-sm mt-0.5">{error()}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setError('')}
+                    class="text-red-400 hover:text-red-600"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </Show>
+
+              <div class="space-y-4">
+                <div class="font-semibold text-slate-900 mb-3">
+                  {loggingExercise()?.exercise_name} <span class="text-xs text-slate-500">({loggingExercise()?.exercise_type})</span>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                  {/* Sets - for all types */}
+                  <Show when={showSets(loggingExercise()?.exercise_type || '')}>
+                    <div>
+                      <label class="block text-sm font-medium text-slate-700 mb-1">Sets</label>
+                      <input
+                        type="number"
+                        value={loggingExercise()?.sets || ''}
+                        onInput={(e) => setLoggingExercise(prev => ({ ...prev!, sets: parseInt(e.currentTarget.value) || undefined }))}
+                        class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent-500"
+                        min="1"
+                      />
+                    </div>
+                  </Show>
+                  
+                  {/* Reps - for Reps, Eccentric, Reps Weighted */}
+                  <Show when={showReps(loggingExercise()?.exercise_type || '')}>
+                    <div>
+                      <label class="block text-sm font-medium text-slate-700 mb-1">Reps</label>
+                      <input
+                        type="number"
+                        value={loggingExercise()?.reps || ''}
+                        onInput={(e) => setLoggingExercise(prev => ({ ...prev!, reps: parseInt(e.currentTarget.value) || undefined }))}
+                        class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent-500"
+                        min="1"
+                      />
+                    </div>
+                  </Show>
+                  
+                  {/* Time - for Isometric, Isometric Weighted */}
+                  <Show when={showTime(loggingExercise()?.exercise_type || '')}>
+                    <div>
+                      <label class="block text-sm font-medium text-slate-700 mb-1">Time (seconds)</label>
+                      <input
+                        type="number"
+                        value={loggingExercise()?.time_seconds || ''}
+                        onInput={(e) => setLoggingExercise(prev => ({ ...prev!, time_seconds: parseInt(e.currentTarget.value) || undefined }))}
+                        class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent-500"
+                        min="1"
+                      />
+                    </div>
+                  </Show>
+                  
+                  {/* Weight - for Reps Weighted, Isometric Weighted */}
+                  <Show when={showWeight(loggingExercise()?.exercise_type || '')}>
+                    <div>
+                      <label class="block text-sm font-medium text-slate-700 mb-1">Weight (kg)</label>
+                      <input
+                        type="number"
+                        step="0.5"
+                        value={loggingExercise()?.weight || ''}
+                        onInput={(e) => setLoggingExercise(prev => ({ ...prev!, weight: parseFloat(e.currentTarget.value) || undefined }))}
+                        class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent-500"
+                        min="0"
+                      />
+                    </div>
+                  </Show>
+                  
+                  {/* Rest - for all types */}
+                  <Show when={showRest(loggingExercise()?.exercise_type || '')}>
+                    <div>
+                      <label class="block text-sm font-medium text-slate-700 mb-1">Rest (seconds)</label>
+                      <input
+                        type="number"
+                        value={loggingExercise()?.rest_seconds || ''}
+                        onInput={(e) => setLoggingExercise(prev => ({ ...prev!, rest_seconds: parseInt(e.currentTarget.value) || undefined }))}
+                        class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent-500"
+                        min="0"
+                      />
+                    </div>
+                  </Show>
+                </div>
+                
+                <div>
+                  <label class="block text-sm font-medium text-slate-700 mb-1">Notes</label>
+                  <textarea
+                    value={loggingExercise()?.notes || ''}
+                    onInput={(e) => setLoggingExercise(prev => ({ ...prev!, notes: e.currentTarget.value || undefined }))}
+                    class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent-500"
+                    placeholder="Optional notes..."
+                    rows="3"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div class="p-6 border-t border-slate-200 bg-slate-50 flex gap-3">
+              <button
+                onClick={handleSaveLogExercise}
+                disabled={isLogging()}
+                class="flex-1 px-6 py-2.5 bg-accent-500 text-white rounded-lg font-medium
+                       hover:bg-accent-600 active:scale-[0.98] transition-all
+                       disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                <Show when={isLogging()}>
+                  <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                </Show>
+                {isLogging() ? 'Logging...' : 'Log Exercise'}
+              </button>
+              <button
+                onClick={() => setLoggingExercise(null)}
+                disabled={isLogging()}
+                class="px-6 py-2.5 bg-slate-100 text-slate-700 rounded-lg font-medium
+                       hover:bg-slate-200 active:scale-[0.98] transition-all
+                       disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       </Show>
     </div>
   )

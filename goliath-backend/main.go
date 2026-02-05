@@ -46,18 +46,21 @@ func main() {
 	userRepo := repositories.NewUserRepository(db)
 	workoutRepo := repositories.NewWorkoutRepository(db)
 	workoutExerciseRepo := repositories.NewWorkoutExerciseRepository(db)
+	exerciseLogRepo := repositories.NewExerciseLogRepository(db)
 
 	// Initialize services
 	muscleService := services.NewMuscleService(muscleRepo, muscleGroupRepo, regionRepo, exerciseAreaRepo)
 	exerciseService := services.NewExerciseService(exerciseRepo)
 	userService := services.NewUserService(userRepo)
 	workoutService := services.NewWorkoutService(workoutRepo, workoutExerciseRepo)
+	exerciseLogService := services.NewExerciseLogService(exerciseLogRepo)
 
 	// Initialize handlers
 	muscleHandlers := handlers.NewMuscleHandlers(muscleService)
 	exerciseHandlers := handlers.NewExerciseHandlers(exerciseService)
 	userHandlers := handlers.NewUserHandlers(userService)
 	workoutHandlers := handlers.NewWorkoutHandlers(workoutService)
+	exerciseLogHandlers := handlers.NewExerciseLogHandlers(exerciseLogService)
 
 	// Setup router
 	r := gin.Default()
@@ -121,6 +124,15 @@ func main() {
 		auth.PUT("/workouts/:id/exercises/:exercise_id", workoutHandlers.UpdateWorkoutExercise)
 		auth.DELETE("/workouts/:id/exercises/:exercise_id", workoutHandlers.RemoveExerciseFromWorkout)
 		auth.GET("/workouts/:id/exercise-areas", workoutHandlers.GetWorkoutExerciseAreas)
+		
+		// Exercise log routes - track completed exercises
+		auth.GET("/exercise-logs", exerciseLogHandlers.GetExerciseLogs)
+		auth.GET("/exercise-logs/:id", exerciseLogHandlers.GetExerciseLog)
+		auth.POST("/exercise-logs", exerciseLogHandlers.CreateExerciseLog)
+		auth.PUT("/exercise-logs/:id", exerciseLogHandlers.UpdateExerciseLog)
+		auth.DELETE("/exercise-logs/:id", exerciseLogHandlers.DeleteExerciseLog)
+		auth.GET("/exercises/:id/logs", exerciseLogHandlers.GetExerciseLogsByExercise)
+		auth.GET("/workouts/:id/logs", exerciseLogHandlers.GetExerciseLogsByWorkout)
 	}
 
 	// Admin-only routes
