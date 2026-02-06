@@ -102,6 +102,7 @@ export default function EditWorkout() {
   const [showExerciseSearch, setShowExerciseSearch] = createSignal(false)
   const [editingExercise, setEditingExercise] = createSignal<WorkoutExercise | null>(null)
   const [showAllAreas, setShowAllAreas] = createSignal(false)
+  const [editingName, setEditingName] = createSignal(false)
   
   // Exercise logging state
   const [loggingExercise, setLoggingExercise] = createSignal<WorkoutExercise | null>(null)
@@ -241,9 +242,10 @@ export default function EditWorkout() {
         name: name().trim(),
       })
 
-      navigate('/workouts')
+      setEditingName(false)
     } catch (err: any) {
       setError(err.message || 'Network error')
+    } finally {
       setIsSubmitting(false)
     }
   }
@@ -415,9 +417,73 @@ export default function EditWorkout() {
 
   return (
     <div class="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
+      {/* Header with workout name and action icons */}
       <div class="p-6 border-b border-slate-200 bg-gradient-to-r from-primary-50 to-accent-50">
-        <h2 class="text-xl font-bold text-slate-900">Edit Workout</h2>
-        <p class="text-sm text-slate-600 mt-1">Modify your workout details and exercises</p>
+        <div class="flex items-center justify-between gap-3">
+          <Show when={!editingName()}>
+            <h2 class="text-xl font-bold text-slate-900 truncate">{name() || 'Loading...'}</h2>
+          </Show>
+          <Show when={editingName()}>
+            <form onSubmit={handleSubmit} class="flex-1 flex items-center gap-2">
+              <input
+                type="text"
+                value={name()}
+                onInput={(e) => setName(e.currentTarget.value)}
+                placeholder="Workout name"
+                class="flex-1 px-3 py-1.5 border border-slate-200 rounded-lg text-sm bg-white 
+                       focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                required
+                autofocus
+              />
+              <button
+                type="submit"
+                disabled={isSubmitting()}
+                class="w-8 h-8 flex items-center justify-center text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
+                title="Save name"
+              >
+                <Show when={isSubmitting()} fallback={
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                }>
+                  <div class="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+                </Show>
+              </button>
+              <button
+                type="button"
+                onClick={() => { setEditingName(false); setName(workout()?.name || '') }}
+                class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                title="Cancel"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </form>
+          </Show>
+          <Show when={!editingName()}>
+            <div class="flex items-center gap-1 flex-shrink-0">
+              <button
+                onClick={() => setEditingName(true)}
+                class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                title="Edit workout name"
+              >
+                <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+              </button>
+              <button
+                onClick={() => navigate('/workouts')}
+                class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                title="Back to Workouts"
+              >
+                <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+              </button>
+            </div>
+          </Show>
+        </div>
       </div>
 
       <Show when={!auth.user}>
@@ -481,50 +547,6 @@ export default function EditWorkout() {
                 </button>
               </div>
             </Show>
-
-            {/* Workout Name Form */}
-            <form onSubmit={handleSubmit} class="space-y-4">
-              <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-2">
-                  Workout Name *
-                </label>
-                <input
-                  type="text"
-                  value={name()}
-                  onInput={(e) => setName(e.currentTarget.value)}
-                  placeholder="e.g., Upper Body Day, Leg Day, Full Body"
-                  class="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-white 
-                         focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
-                         placeholder:text-slate-400"
-                  required
-                />
-              </div>
-
-              <div class="flex gap-3">
-                <button
-                  type="submit"
-                  disabled={isSubmitting()}
-                  class="px-6 py-2 bg-primary-500 text-white rounded-lg font-medium
-                         hover:bg-primary-600 active:scale-[0.98] transition-all
-                         disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                >
-                  <Show when={isSubmitting()}>
-                    <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  </Show>
-                  {isSubmitting() ? 'Saving...' : 'Save Name'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => navigate('/workouts')}
-                  disabled={isSubmitting()}
-                  class="px-6 py-2 bg-slate-100 text-slate-700 rounded-lg font-medium
-                         hover:bg-slate-200 active:scale-[0.98] transition-all
-                         disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Back to Workouts
-                </button>
-              </div>
-            </form>
 
             {/* Exercise Areas Summary */}
             <Show when={(workoutExercises() || []).length > 0 && (workoutExerciseAreas() || []).length > 0}>
@@ -888,175 +910,167 @@ export default function EditWorkout() {
               </div>
             </div>
 
-            {/* Last Logged Exercises Card */}
+            {/* Last Logged Section */}
             <Show when={(latestLogs()?.exercise_logs ?? []).length > 0}>
               <div class="border-t border-slate-200 pt-6">
-                <div class="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
-                  {/* Header */}
-                  <div class="p-4 border-b border-slate-200 bg-gradient-to-r from-accent-50 to-primary-50">
-                    <h3 class="text-lg font-bold text-slate-900">Last Logged</h3>
-                    <p class="text-sm text-slate-600 mt-0.5">Latest log entry per exercise in this workout</p>
-                  </div>
+                <h3 class="text-lg font-semibold text-slate-900 mb-4">Last Logged</h3>
 
-                  {/* Desktop Table - single table for consistent column widths */}
-                  <div class="hidden sm:block">
-                    <table class="w-full table-fixed">
-                      <colgroup>
-                        <col class="w-[100px]" />
-                        <col class="w-[25%]" />
-                        <col />
-                        <col class="w-[20%]" />
-                      </colgroup>
-                      <thead>
-                        <tr class="border-b border-slate-100">
-                          <th class="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-6 py-2">Time</th>
-                          <th class="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-6 py-2">Exercise</th>
-                          <th class="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-6 py-2">Details</th>
-                          <th class="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-6 py-2">Notes</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <For each={groupedLatestLogs()}>
-                          {(group, groupIndex) => (
-                            <>
-                              {/* Day Header Row */}
-                              <tr class={`bg-slate-50 ${groupIndex() > 0 ? 'border-t-2 border-slate-200' : ''}`}>
-                                <td colspan="4" class="px-6 py-3 border-b border-slate-200">
-                                  <div class="flex items-center justify-between">
-                                    <div class="flex items-center gap-3">
-                                      <span class="text-lg">📅</span>
-                                      <span class="font-semibold text-slate-800">{group.label}</span>
-                                    </div>
-                                    <span class="text-xs text-slate-500 bg-white px-2.5 py-1 rounded-full border border-slate-200">
-                                      {group.logs.length} {group.logs.length === 1 ? 'exercise' : 'exercises'}
-                                    </span>
+                {/* Desktop Table - single table for consistent column widths */}
+                <div class="hidden sm:block border border-slate-200 rounded-lg overflow-hidden">
+                  <table class="w-full table-fixed">
+                    <colgroup>
+                      <col class="w-[100px]" />
+                      <col class="w-[25%]" />
+                      <col />
+                      <col class="w-[20%]" />
+                    </colgroup>
+                    <thead>
+                      <tr class="border-b border-slate-100">
+                        <th class="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-6 py-2">Time</th>
+                        <th class="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-6 py-2">Exercise</th>
+                        <th class="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-6 py-2">Details</th>
+                        <th class="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-6 py-2">Notes</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <For each={groupedLatestLogs()}>
+                        {(group, groupIndex) => (
+                          <>
+                            {/* Day Header Row */}
+                            <tr class={`bg-slate-50 ${groupIndex() > 0 ? 'border-t-2 border-slate-200' : ''}`}>
+                              <td colspan="4" class="px-6 py-3 border-b border-slate-200">
+                                <div class="flex items-center justify-between">
+                                  <div class="flex items-center gap-3">
+                                    <span class="text-lg">📅</span>
+                                    <span class="font-semibold text-slate-800">{group.label}</span>
                                   </div>
-                                </td>
-                              </tr>
-                              {/* Log Rows */}
-                              <For each={group.logs}>
-                                {(log) => (
-                                  <tr class="hover:bg-slate-50 transition-colors border-b border-slate-100">
-                                    <td class="px-6 py-3 text-sm text-slate-500 whitespace-nowrap">
-                                      {formatLogTime(log.logged_when)}
-                                    </td>
-                                    <td class="px-6 py-3">
-                                      <div class="font-medium text-slate-900 text-sm truncate">{log.exercise_name}</div>
-                                      <div class="text-xs text-slate-500 truncate">{log.exercise_type}</div>
-                                    </td>
-                                    <td class="px-6 py-3">
-                                      <div class="flex items-center gap-1.5 flex-wrap">
-                                        <Show when={log.sets}>
-                                          <span class="px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-medium whitespace-nowrap">
-                                            {log.sets} sets
-                                          </span>
-                                        </Show>
-                                        <Show when={log.reps}>
-                                          <span class="px-1.5 py-0.5 bg-green-50 text-green-700 rounded text-xs font-medium whitespace-nowrap">
-                                            {log.reps} reps
-                                          </span>
-                                        </Show>
-                                        <Show when={log.time_seconds}>
-                                          <span class="px-1.5 py-0.5 bg-purple-50 text-purple-700 rounded text-xs font-medium whitespace-nowrap">
-                                            {log.time_seconds}s
-                                          </span>
-                                        </Show>
-                                        <Show when={log.weight}>
-                                          <span class="px-1.5 py-0.5 bg-orange-50 text-orange-700 rounded text-xs font-medium whitespace-nowrap">
-                                            {log.weight}kg
-                                          </span>
-                                        </Show>
-                                        <Show when={log.rest_seconds}>
-                                          <span class="px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded text-xs font-medium whitespace-nowrap">
-                                            ↻ {log.rest_seconds}s
-                                          </span>
-                                        </Show>
-                                      </div>
-                                    </td>
-                                    <td class="px-6 py-3">
-                                      <Show when={log.notes}>
-                                        <div class="text-xs text-slate-500 italic truncate" title={log.notes}>
-                                          "{log.notes}"
-                                        </div>
-                                      </Show>
-                                    </td>
-                                  </tr>
-                                )}
-                              </For>
-                            </>
-                          )}
-                        </For>
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {/* Mobile View */}
-                  <div class="sm:hidden">
-                    <For each={groupedLatestLogs()}>
-                      {(group, groupIndex) => (
-                        <div class={groupIndex() > 0 ? 'border-t-2 border-slate-200' : ''}>
-                          {/* Day Header */}
-                          <div class="px-4 py-3 bg-slate-50 border-b border-slate-200">
-                            <div class="flex items-center justify-between">
-                              <div class="flex items-center gap-3">
-                                <span class="text-lg">📅</span>
-                                <span class="font-semibold text-slate-800">{group.label}</span>
-                              </div>
-                              <span class="text-xs text-slate-500 bg-white px-2.5 py-1 rounded-full border border-slate-200">
-                                {group.logs.length} {group.logs.length === 1 ? 'exercise' : 'exercises'}
-                              </span>
-                            </div>
-                          </div>
-                          <div class="p-3 space-y-2">
+                                  <span class="text-xs text-slate-500 bg-white px-2.5 py-1 rounded-full border border-slate-200">
+                                    {group.logs.length} {group.logs.length === 1 ? 'exercise' : 'exercises'}
+                                  </span>
+                                </div>
+                              </td>
+                            </tr>
+                            {/* Log Rows */}
                             <For each={group.logs}>
                               {(log) => (
-                                <div class="p-3 bg-white border border-slate-200 rounded-lg">
-                                  <div class="flex-1 min-w-0 mb-2">
-                                    <div class="font-medium text-slate-900 text-sm">{log.exercise_name}</div>
-                                    <div class="flex items-center gap-2 text-xs text-slate-500">
-                                      <span>{log.exercise_type}</span>
-                                      <span>·</span>
-                                      <span>{formatLogTime(log.logged_when)}</span>
+                                <tr class="hover:bg-slate-50 transition-colors border-b border-slate-100">
+                                  <td class="px-6 py-3 text-sm text-slate-500 whitespace-nowrap">
+                                    {formatLogTime(log.logged_when)}
+                                  </td>
+                                  <td class="px-6 py-3">
+                                    <div class="font-medium text-slate-900 text-sm truncate">{log.exercise_name}</div>
+                                    <div class="text-xs text-slate-500 truncate">{log.exercise_type}</div>
+                                  </td>
+                                  <td class="px-6 py-3">
+                                    <div class="flex items-center gap-1.5 flex-wrap">
+                                      <Show when={log.sets}>
+                                        <span class="px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-medium whitespace-nowrap">
+                                          {log.sets} sets
+                                        </span>
+                                      </Show>
+                                      <Show when={log.reps}>
+                                        <span class="px-1.5 py-0.5 bg-green-50 text-green-700 rounded text-xs font-medium whitespace-nowrap">
+                                          {log.reps} reps
+                                        </span>
+                                      </Show>
+                                      <Show when={log.time_seconds}>
+                                        <span class="px-1.5 py-0.5 bg-purple-50 text-purple-700 rounded text-xs font-medium whitespace-nowrap">
+                                          {log.time_seconds}s
+                                        </span>
+                                      </Show>
+                                      <Show when={log.weight}>
+                                        <span class="px-1.5 py-0.5 bg-orange-50 text-orange-700 rounded text-xs font-medium whitespace-nowrap">
+                                          {log.weight}kg
+                                        </span>
+                                      </Show>
+                                      <Show when={log.rest_seconds}>
+                                        <span class="px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded text-xs font-medium whitespace-nowrap">
+                                          ↻ {log.rest_seconds}s
+                                        </span>
+                                      </Show>
                                     </div>
-                                  </div>
-                                  <div class="flex flex-wrap gap-1.5">
-                                    <Show when={log.sets}>
-                                      <span class="px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-medium">
-                                        {log.sets} sets
-                                      </span>
+                                  </td>
+                                  <td class="px-6 py-3">
+                                    <Show when={log.notes}>
+                                      <div class="text-xs text-slate-500 italic truncate" title={log.notes}>
+                                        "{log.notes}"
+                                      </div>
                                     </Show>
-                                    <Show when={log.reps}>
-                                      <span class="px-1.5 py-0.5 bg-green-50 text-green-700 rounded text-xs font-medium">
-                                        {log.reps} reps
-                                      </span>
-                                    </Show>
-                                    <Show when={log.time_seconds}>
-                                      <span class="px-1.5 py-0.5 bg-purple-50 text-purple-700 rounded text-xs font-medium">
-                                        {log.time_seconds}s
-                                      </span>
-                                    </Show>
-                                    <Show when={log.weight}>
-                                      <span class="px-1.5 py-0.5 bg-orange-50 text-orange-700 rounded text-xs font-medium">
-                                        {log.weight}kg
-                                      </span>
-                                    </Show>
-                                    <Show when={log.rest_seconds}>
-                                      <span class="px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded text-xs font-medium">
-                                        ↻ {log.rest_seconds}s
-                                      </span>
-                                    </Show>
-                                  </div>
-                                  <Show when={log.notes}>
-                                    <div class="text-xs text-slate-500 mt-2 italic line-clamp-2">"{log.notes}"</div>
-                                  </Show>
-                                </div>
+                                  </td>
+                                </tr>
                               )}
                             </For>
+                          </>
+                        )}
+                      </For>
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile View */}
+                <div class="sm:hidden space-y-3">
+                  <For each={groupedLatestLogs()}>
+                    {(group) => (
+                      <div>
+                        {/* Day Header */}
+                        <div class="flex items-center justify-between mb-2">
+                          <div class="flex items-center gap-2">
+                            <span class="text-base">📅</span>
+                            <span class="font-semibold text-slate-800 text-sm">{group.label}</span>
                           </div>
+                          <span class="text-xs text-slate-500">
+                            {group.logs.length} {group.logs.length === 1 ? 'exercise' : 'exercises'}
+                          </span>
                         </div>
-                      )}
-                    </For>
-                  </div>
+                        <div class="space-y-2">
+                          <For each={group.logs}>
+                            {(log) => (
+                              <div class="p-3 border border-slate-200 rounded-lg">
+                                <div class="flex-1 min-w-0 mb-2">
+                                  <div class="font-medium text-slate-900 text-sm">{log.exercise_name}</div>
+                                  <div class="flex items-center gap-2 text-xs text-slate-500">
+                                    <span>{log.exercise_type}</span>
+                                    <span>·</span>
+                                    <span>{formatLogTime(log.logged_when)}</span>
+                                  </div>
+                                </div>
+                                <div class="flex flex-wrap gap-1.5">
+                                  <Show when={log.sets}>
+                                    <span class="px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-medium">
+                                      {log.sets} sets
+                                    </span>
+                                  </Show>
+                                  <Show when={log.reps}>
+                                    <span class="px-1.5 py-0.5 bg-green-50 text-green-700 rounded text-xs font-medium">
+                                      {log.reps} reps
+                                    </span>
+                                  </Show>
+                                  <Show when={log.time_seconds}>
+                                    <span class="px-1.5 py-0.5 bg-purple-50 text-purple-700 rounded text-xs font-medium">
+                                      {log.time_seconds}s
+                                    </span>
+                                  </Show>
+                                  <Show when={log.weight}>
+                                    <span class="px-1.5 py-0.5 bg-orange-50 text-orange-700 rounded text-xs font-medium">
+                                      {log.weight}kg
+                                    </span>
+                                  </Show>
+                                  <Show when={log.rest_seconds}>
+                                    <span class="px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded text-xs font-medium">
+                                      ↻ {log.rest_seconds}s
+                                    </span>
+                                  </Show>
+                                </div>
+                                <Show when={log.notes}>
+                                  <div class="text-xs text-slate-500 mt-2 italic line-clamp-2">"{log.notes}"</div>
+                                </Show>
+                              </div>
+                            )}
+                          </For>
+                        </div>
+                      </div>
+                    )}
+                  </For>
                 </div>
               </div>
             </Show>
