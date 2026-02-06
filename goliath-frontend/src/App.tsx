@@ -8,6 +8,7 @@ import EditExercise from './components/EditExercise'
 import Workouts from './components/Workouts'
 import AddWorkout from './components/AddWorkout'
 import EditWorkout from './components/EditWorkout'
+import ExerciseLogs from './components/ExerciseLogs'
 import Users from './components/Users'
 import Login from './components/Login'
 
@@ -86,6 +87,16 @@ const Layout: ParentComponent = (props) => {
           >
             📋 Workouts
           </A>
+          <Show when={auth.user}>
+            <A
+              href="/exercise-logs"
+              class="px-4 py-2 rounded-lg text-sm font-medium transition-all"
+              activeClass="bg-primary-500 text-white shadow-md"
+              inactiveClass="bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
+            >
+              📝 Exercise Log
+            </A>
+          </Show>
           <A
             href="/users"
             class="px-4 py-2 rounded-lg text-sm font-medium transition-all"
@@ -122,6 +133,7 @@ const AppContent: Component = () => {
       <Route path="/workouts" component={Workouts} />
       <Route path="/workouts/new" component={AddWorkout} />
       <Route path="/workouts/:id/edit" component={EditWorkout} />
+      <Route path="/exercise-logs" component={ExerciseLogs} />
       <Route path="/users" component={Users} />
     </Router>
   )

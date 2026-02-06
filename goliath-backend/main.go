@@ -133,6 +133,7 @@ func main() {
 		auth.DELETE("/exercise-logs/:id", exerciseLogHandlers.DeleteExerciseLog)
 		auth.GET("/exercises/:id/logs", exerciseLogHandlers.GetExerciseLogsByExercise)
 		auth.GET("/workouts/:id/logs", exerciseLogHandlers.GetExerciseLogsByWorkout)
+		auth.GET("/workouts/:id/latest-logs", exerciseLogHandlers.GetLatestLogsByWorkout)
 	}
 
 	// Admin-only routes

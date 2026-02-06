@@ -1,4 +1,4 @@
-import { createSignal, createResource, createEffect, Show, For } from 'solid-js'
+import { createSignal, createResource, createEffect, createMemo, Show, For } from 'solid-js'
 import { useNavigate, useParams } from '@solidjs/router'
 import { apiGet, apiPut, apiPost, apiDelete } from '../api'
 import { useAuth } from '../auth'
@@ -36,6 +36,28 @@ interface Exercise {
   type: string
 }
 
+interface ExerciseLog {
+  id: number
+  user_id: number
+  workout_id?: number | null
+  exercise_id: number
+  exercise_name: string
+  exercise_type: string
+  logged_when: string
+  position: number
+  sets?: number
+  reps?: number
+  time_seconds?: number
+  weight?: number
+  rest_seconds?: number
+  notes?: string
+}
+
+interface ExerciseLogsResponse {
+  exercise_logs: ExerciseLog[]
+  count: number
+}
+
 async function fetchWorkout(id: number) {
   return apiGet<Workout>(`/workouts/${id}`)
 }
@@ -55,6 +77,10 @@ async function fetchWorkoutExerciseAreas(id: number) {
   return data.exercise_areas
 }
 
+async function fetchLatestLogs(id: number) {
+  return apiGet<ExerciseLogsResponse>(`/workouts/${id}/latest-logs`)
+}
+
 export default function EditWorkout() {
   const params = useParams()
   const navigate = useNavigate()
@@ -65,6 +91,7 @@ export default function EditWorkout() {
   const [workoutExercises, { refetch: refetchExercises }] = createResource(() => workoutId, fetchWorkoutExercises)
   const [allExercises] = createResource(fetchAllExercises)
   const [workoutExerciseAreas, { refetch: refetchExerciseAreas }] = createResource(() => workoutId, fetchWorkoutExerciseAreas)
+  const [latestLogs, { refetch: refetchLatestLogs }] = createResource(() => workoutId, fetchLatestLogs)
   
   const [name, setName] = createSignal('')
   const [error, setError] = createSignal('')
@@ -79,6 +106,54 @@ export default function EditWorkout() {
   // Exercise logging state
   const [loggingExercise, setLoggingExercise] = createSignal<WorkoutExercise | null>(null)
   const [isLogging, setIsLogging] = createSignal(false)
+
+  // Latest logs grouped by day
+  const formatLogDate = (dateStr: string): string => {
+    const date = new Date(dateStr)
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+  }
+
+  const formatLogTime = (dateStr: string): string => {
+    const date = new Date(dateStr)
+    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+  }
+
+  const getDateKey = (dateStr: string): string => {
+    const date = new Date(dateStr)
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+  }
+
+  const getRelativeDayLabel = (dateStr: string): string => {
+    const date = new Date(dateStr)
+    const today = new Date()
+    const yesterday = new Date()
+    yesterday.setDate(yesterday.getDate() - 1)
+
+    const dateKey = getDateKey(dateStr)
+    const todayKey = getDateKey(today.toISOString())
+    const yesterdayKey = getDateKey(yesterday.toISOString())
+
+    if (dateKey === todayKey) return 'Today'
+    if (dateKey === yesterdayKey) return 'Yesterday'
+
+    const dayName = date.toLocaleDateString('en-US', { weekday: 'long' })
+    return `${dayName}, ${formatLogDate(dateStr)}`
+  }
+
+  const groupedLatestLogs = createMemo(() => {
+    const logs = latestLogs()?.exercise_logs ?? []
+    const groups: Map<string, { date: string; label: string; logs: ExerciseLog[] }> = new Map()
+
+    for (const log of logs) {
+      const key = getDateKey(log.logged_when)
+      if (!groups.has(key)) {
+        groups.set(key, { date: key, label: getRelativeDayLabel(log.logged_when), logs: [] })
+      }
+      groups.get(key)!.logs.push(log)
+    }
+
+    return Array.from(groups.values()).sort((a, b) => b.date.localeCompare(a.date))
+  })
 
   // Initialize form with workout data when loaded
   createEffect(() => {
@@ -199,6 +274,7 @@ export default function EditWorkout() {
       setShowExerciseSearch(false)
       refetchExercises()
       refetchExerciseAreas()
+      refetchLatestLogs()
     } catch (err: any) {
       setError(err.message || 'Failed to add exercise')
     }
@@ -234,6 +310,7 @@ export default function EditWorkout() {
       await apiDelete(`/workouts/${workoutId}/exercises/${workoutExerciseId}`)
       refetchExercises()
       refetchExerciseAreas()
+      refetchLatestLogs()
     } catch (err: any) {
       setError(err.message || 'Failed to remove exercise')
     }
@@ -293,9 +370,9 @@ export default function EditWorkout() {
       })
       
       // Show success message briefly
-      const successMsg = 'Exercise logged successfully!'
       setError('')
-      alert(successMsg)
+      refetchLatestLogs()
+      alert('Exercise logged successfully!')
     } catch (err: any) {
       setError(err.message || 'Failed to log exercise')
     } finally {
@@ -326,10 +403,9 @@ export default function EditWorkout() {
       })
       
       setLoggingExercise(null)
-      // Show success message briefly
-      const successMsg = 'Exercise logged successfully!'
       setError('')
-      alert(successMsg)
+      refetchLatestLogs()
+      alert('Exercise logged successfully!')
     } catch (err: any) {
       setError(err.message || 'Failed to log exercise')
     } finally {
@@ -811,6 +887,179 @@ export default function EditWorkout() {
                 </For>
               </div>
             </div>
+
+            {/* Last Logged Exercises Card */}
+            <Show when={(latestLogs()?.exercise_logs ?? []).length > 0}>
+              <div class="border-t border-slate-200 pt-6">
+                <div class="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
+                  {/* Header */}
+                  <div class="p-4 border-b border-slate-200 bg-gradient-to-r from-accent-50 to-primary-50">
+                    <h3 class="text-lg font-bold text-slate-900">Last Logged</h3>
+                    <p class="text-sm text-slate-600 mt-0.5">Latest log entry per exercise in this workout</p>
+                  </div>
+
+                  {/* Desktop Table - single table for consistent column widths */}
+                  <div class="hidden sm:block">
+                    <table class="w-full table-fixed">
+                      <colgroup>
+                        <col class="w-[100px]" />
+                        <col class="w-[25%]" />
+                        <col />
+                        <col class="w-[20%]" />
+                      </colgroup>
+                      <thead>
+                        <tr class="border-b border-slate-100">
+                          <th class="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-6 py-2">Time</th>
+                          <th class="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-6 py-2">Exercise</th>
+                          <th class="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-6 py-2">Details</th>
+                          <th class="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-6 py-2">Notes</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <For each={groupedLatestLogs()}>
+                          {(group, groupIndex) => (
+                            <>
+                              {/* Day Header Row */}
+                              <tr class={`bg-slate-50 ${groupIndex() > 0 ? 'border-t-2 border-slate-200' : ''}`}>
+                                <td colspan="4" class="px-6 py-3 border-b border-slate-200">
+                                  <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-3">
+                                      <span class="text-lg">📅</span>
+                                      <span class="font-semibold text-slate-800">{group.label}</span>
+                                    </div>
+                                    <span class="text-xs text-slate-500 bg-white px-2.5 py-1 rounded-full border border-slate-200">
+                                      {group.logs.length} {group.logs.length === 1 ? 'exercise' : 'exercises'}
+                                    </span>
+                                  </div>
+                                </td>
+                              </tr>
+                              {/* Log Rows */}
+                              <For each={group.logs}>
+                                {(log) => (
+                                  <tr class="hover:bg-slate-50 transition-colors border-b border-slate-100">
+                                    <td class="px-6 py-3 text-sm text-slate-500 whitespace-nowrap">
+                                      {formatLogTime(log.logged_when)}
+                                    </td>
+                                    <td class="px-6 py-3">
+                                      <div class="font-medium text-slate-900 text-sm truncate">{log.exercise_name}</div>
+                                      <div class="text-xs text-slate-500 truncate">{log.exercise_type}</div>
+                                    </td>
+                                    <td class="px-6 py-3">
+                                      <div class="flex items-center gap-1.5 flex-wrap">
+                                        <Show when={log.sets}>
+                                          <span class="px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-medium whitespace-nowrap">
+                                            {log.sets} sets
+                                          </span>
+                                        </Show>
+                                        <Show when={log.reps}>
+                                          <span class="px-1.5 py-0.5 bg-green-50 text-green-700 rounded text-xs font-medium whitespace-nowrap">
+                                            {log.reps} reps
+                                          </span>
+                                        </Show>
+                                        <Show when={log.time_seconds}>
+                                          <span class="px-1.5 py-0.5 bg-purple-50 text-purple-700 rounded text-xs font-medium whitespace-nowrap">
+                                            {log.time_seconds}s
+                                          </span>
+                                        </Show>
+                                        <Show when={log.weight}>
+                                          <span class="px-1.5 py-0.5 bg-orange-50 text-orange-700 rounded text-xs font-medium whitespace-nowrap">
+                                            {log.weight}kg
+                                          </span>
+                                        </Show>
+                                        <Show when={log.rest_seconds}>
+                                          <span class="px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded text-xs font-medium whitespace-nowrap">
+                                            ↻ {log.rest_seconds}s
+                                          </span>
+                                        </Show>
+                                      </div>
+                                    </td>
+                                    <td class="px-6 py-3">
+                                      <Show when={log.notes}>
+                                        <div class="text-xs text-slate-500 italic truncate" title={log.notes}>
+                                          "{log.notes}"
+                                        </div>
+                                      </Show>
+                                    </td>
+                                  </tr>
+                                )}
+                              </For>
+                            </>
+                          )}
+                        </For>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Mobile View */}
+                  <div class="sm:hidden">
+                    <For each={groupedLatestLogs()}>
+                      {(group, groupIndex) => (
+                        <div class={groupIndex() > 0 ? 'border-t-2 border-slate-200' : ''}>
+                          {/* Day Header */}
+                          <div class="px-4 py-3 bg-slate-50 border-b border-slate-200">
+                            <div class="flex items-center justify-between">
+                              <div class="flex items-center gap-3">
+                                <span class="text-lg">📅</span>
+                                <span class="font-semibold text-slate-800">{group.label}</span>
+                              </div>
+                              <span class="text-xs text-slate-500 bg-white px-2.5 py-1 rounded-full border border-slate-200">
+                                {group.logs.length} {group.logs.length === 1 ? 'exercise' : 'exercises'}
+                              </span>
+                            </div>
+                          </div>
+                          <div class="p-3 space-y-2">
+                            <For each={group.logs}>
+                              {(log) => (
+                                <div class="p-3 bg-white border border-slate-200 rounded-lg">
+                                  <div class="flex-1 min-w-0 mb-2">
+                                    <div class="font-medium text-slate-900 text-sm">{log.exercise_name}</div>
+                                    <div class="flex items-center gap-2 text-xs text-slate-500">
+                                      <span>{log.exercise_type}</span>
+                                      <span>·</span>
+                                      <span>{formatLogTime(log.logged_when)}</span>
+                                    </div>
+                                  </div>
+                                  <div class="flex flex-wrap gap-1.5">
+                                    <Show when={log.sets}>
+                                      <span class="px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-medium">
+                                        {log.sets} sets
+                                      </span>
+                                    </Show>
+                                    <Show when={log.reps}>
+                                      <span class="px-1.5 py-0.5 bg-green-50 text-green-700 rounded text-xs font-medium">
+                                        {log.reps} reps
+                                      </span>
+                                    </Show>
+                                    <Show when={log.time_seconds}>
+                                      <span class="px-1.5 py-0.5 bg-purple-50 text-purple-700 rounded text-xs font-medium">
+                                        {log.time_seconds}s
+                                      </span>
+                                    </Show>
+                                    <Show when={log.weight}>
+                                      <span class="px-1.5 py-0.5 bg-orange-50 text-orange-700 rounded text-xs font-medium">
+                                        {log.weight}kg
+                                      </span>
+                                    </Show>
+                                    <Show when={log.rest_seconds}>
+                                      <span class="px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded text-xs font-medium">
+                                        ↻ {log.rest_seconds}s
+                                      </span>
+                                    </Show>
+                                  </div>
+                                  <Show when={log.notes}>
+                                    <div class="text-xs text-slate-500 mt-2 italic line-clamp-2">"{log.notes}"</div>
+                                  </Show>
+                                </div>
+                              )}
+                            </For>
+                          </div>
+                        </div>
+                      )}
+                    </For>
+                  </div>
+                </div>
+              </div>
+            </Show>
           </div>
         </Show>
       </Show>

@@ -404,8 +404,30 @@ func ScanExerciseLog(rows *sql.Rows) (*ExerciseLog, error) {
 		return nil, err
 	}
 
-	el.CreatedWhen, _ = time.Parse("2006-01-02 15:04:05", createdWhen)
-	el.ModifiedWhen, _ = time.Parse("2006-01-02 15:04:05", modifiedWhen)
-	el.LoggedWhen, _ = time.Parse("2006-01-02 15:04:05", loggedWhen)
+	// Try multiple timestamp formats
+	el.CreatedWhen = parseTimestamp(createdWhen)
+	el.ModifiedWhen = parseTimestamp(modifiedWhen)
+	el.LoggedWhen = parseTimestamp(loggedWhen)
 	return &el, nil
+}
+
+// parseTimestamp tries multiple timestamp formats commonly used by SQLite
+func parseTimestamp(s string) time.Time {
+	formats := []string{
+		"2006-01-02 15:04:05",           // Format we insert
+		"2006-01-02T15:04:05Z",          // ISO 8601 UTC
+		"2006-01-02T15:04:05.999Z",      // ISO 8601 UTC with milliseconds
+		"2006-01-02T15:04:05.999999Z",   // ISO 8601 UTC with microseconds
+		"2006-01-02 15:04:05.999999",    // SQLite datetime with microseconds
+		time.RFC3339,                     // Standard Go format
+	}
+	
+	for _, format := range formats {
+		if t, err := time.Parse(format, s); err == nil {
+			return t
+		}
+	}
+	
+	// If all parsing fails, return zero time
+	return time.Time{}
 }

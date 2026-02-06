@@ -127,6 +127,37 @@ func (h *ExerciseLogHandlers) GetExerciseLogsByWorkout(c *gin.Context) {
 	})
 }
 
+// GetLatestLogsByWorkout handles GET /workouts/:id/latest-logs
+func (h *ExerciseLogHandlers) GetLatestLogsByWorkout(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	// Get user from context
+	user, hasUser := middleware.GetUserFromContext(ctx)
+	if !hasUser {
+		c.JSON(401, gin.H{"error": "Authentication required"})
+		return
+	}
+
+	// Parse workout ID from URL
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		c.JSON(400, gin.H{"error": "Invalid workout ID"})
+		return
+	}
+
+	logs, err := h.exerciseLogService.GetLatestLogsByWorkout(ctx, user.ID, id)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"exercise_logs": logs,
+		"count":         len(logs),
+	})
+}
+
 // GetExerciseLog handles GET /exercise-logs/:id
 func (h *ExerciseLogHandlers) GetExerciseLog(c *gin.Context) {
 	ctx := c.Request.Context()

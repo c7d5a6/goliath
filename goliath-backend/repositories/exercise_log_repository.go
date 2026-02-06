@@ -190,6 +190,57 @@ func (r *ExerciseLogRepository) GetByID(ctx context.Context, id int, userID int)
 	return &el, nil
 }
 
+// GetLatestByWorkoutExercises retrieves the latest log entry per unique exercise
+// for exercises that are either in the given workout or have workout_id = workoutID
+func (r *ExerciseLogRepository) GetLatestByWorkoutExercises(ctx context.Context, userID int, workoutID int) ([]entities.ExerciseLog, error) {
+	executor, err := r.GetExecutor(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := executor.QueryContext(ctx, `
+		WITH ranked_logs AS (
+			SELECT 
+				el.id, el.version, el.created_when, el.created_by, el.modified_when, el.modified_by,
+				el.user_id, el.workout_id, el.exercise_id, el.logged_when, el.position, el.sets, el.reps, el.time_seconds, el.weight, el.rest_seconds, el.notes,
+				e.name as exercise_name, e.type as exercise_type,
+				ROW_NUMBER() OVER (PARTITION BY el.exercise_id ORDER BY el.logged_when DESC) as rn
+			FROM exercise_log el
+			JOIN exercise e ON el.exercise_id = e.id
+			WHERE el.user_id = ?
+			AND (
+				el.exercise_id IN (SELECT we.exercise_id FROM workout_exercise we WHERE we.workout_id = ?)
+				OR el.workout_id = ?
+			)
+		)
+		SELECT id, version, created_when, created_by, modified_when, modified_by,
+			user_id, workout_id, exercise_id, logged_when, position, sets, reps, time_seconds, weight, rest_seconds, notes,
+			exercise_name, exercise_type
+		FROM ranked_logs
+		WHERE rn = 1
+		ORDER BY logged_when DESC
+	`, userID, workoutID, workoutID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	logs := []entities.ExerciseLog{}
+	for rows.Next() {
+		logEntry, err := entities.ScanExerciseLog(rows)
+		if err != nil {
+			return nil, err
+		}
+		logs = append(logs, *logEntry)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return logs, nil
+}
+
 // Create creates a new exercise log
 func (r *ExerciseLogRepository) Create(ctx context.Context, userID int, workoutID *int, exerciseID int, position int, sets *int, reps *int, timeSeconds *int, weight *float64, restSeconds *int, notes *string) (int64, error) {
 	log.Printf("Starting to create exercise log for exercise %d, user %d", exerciseID, userID)

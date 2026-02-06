@@ -57,6 +57,15 @@ func (s *ExerciseLogService) GetLogsByWorkoutID(ctx context.Context, userID int,
 	return logs, nil
 }
 
+// GetLatestLogsByWorkout retrieves the latest log per unique exercise for a workout
+func (s *ExerciseLogService) GetLatestLogsByWorkout(ctx context.Context, userID int, workoutID int) ([]entities.ExerciseLog, error) {
+	logs, err := s.exerciseLogRepo.GetLatestByWorkoutExercises(ctx, userID, workoutID)
+	if err != nil {
+		return nil, err
+	}
+	return logs, nil
+}
+
 // GetLogByID retrieves a single exercise log by ID for a specific user
 func (s *ExerciseLogService) GetLogByID(ctx context.Context, id int, userID int) (*entities.ExerciseLog, error) {
 	logEntry, err := s.exerciseLogRepo.GetByID(ctx, id, userID)
