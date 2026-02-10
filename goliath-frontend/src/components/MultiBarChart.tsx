@@ -114,7 +114,8 @@ export default function MultiBarChart(props: MultiBarChartProps) {
                 if (label) {
                   label += ': '
                 }
-                label += Math.round(context.parsed.y * 10) / 10 + '%'
+                const value = context.parsed.y ?? 0
+                label += Math.round(value * 10) / 10 + '%'
                 return label
               }
             }
