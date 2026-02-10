@@ -241,6 +241,87 @@ func (r *ExerciseLogRepository) GetLatestByWorkoutExercises(ctx context.Context,
 	return logs, nil
 }
 
+// GetWorkoutIntensityData retrieves intensity data for a workout's exercises over the last 5 weeks
+func (r *ExerciseLogRepository) GetWorkoutIntensityData(ctx context.Context, userID int, workoutID int) (map[int]map[string]float64, error) {
+	executor, err := r.GetExecutor(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get data: exercise_id, week_offset, max(reps or time_seconds)
+	rows, err := executor.QueryContext(ctx, `
+		WITH workout_exercises AS (
+			SELECT DISTINCT exercise_id 
+			FROM workout_exercise 
+			WHERE workout_id = ?
+		),
+		exercise_maxes AS (
+			SELECT 
+				exercise_id,
+				MAX(COALESCE(reps, 0)) as max_reps,
+				MAX(COALESCE(time_seconds, 0)) as max_time
+			FROM exercise_log
+			WHERE user_id = ? 
+				AND exercise_id IN (SELECT exercise_id FROM workout_exercises)
+			GROUP BY exercise_id
+		),
+		weekly_logs AS (
+			SELECT 
+				el.exercise_id,
+				CAST((julianday('now') - julianday(el.logged_when)) / 7 AS INTEGER) as week_offset,
+				COALESCE(el.reps, 0) as reps,
+				COALESCE(el.time_seconds, 0) as time_seconds,
+				em.max_reps,
+				em.max_time
+			FROM exercise_log el
+			JOIN exercise_maxes em ON el.exercise_id = em.exercise_id
+			WHERE el.user_id = ?
+				AND el.exercise_id IN (SELECT exercise_id FROM workout_exercises)
+				AND julianday('now') - julianday(el.logged_when) <= 35
+		)
+		SELECT 
+			exercise_id,
+			week_offset,
+			AVG(CASE 
+				WHEN max_reps > 0 THEN CAST(reps AS REAL) / max_reps * 100
+				WHEN max_time > 0 THEN CAST(time_seconds AS REAL) / max_time * 100
+				ELSE 0
+			END) as avg_intensity
+		FROM weekly_logs
+		WHERE week_offset <= 4
+		GROUP BY exercise_id, week_offset
+	`, workoutID, userID, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	// Result: map[exercise_id]map[week_offset]intensity
+	result := make(map[int]map[string]float64)
+	
+	for rows.Next() {
+		var exerciseID, weekOffset int
+		var intensity float64
+		
+		if err := rows.Scan(&exerciseID, &weekOffset, &intensity); err != nil {
+			return nil, err
+		}
+		
+		if result[exerciseID] == nil {
+			result[exerciseID] = make(map[string]float64)
+		}
+		
+		weekLabel := "current"
+		if weekOffset > 0 {
+			weekLabel = "week_" + string(rune('0' + weekOffset))
+		}
+		
+		result[exerciseID][weekLabel] = intensity
+	}
+
+	return result, rows.Err()
+}
+
 // Create creates a new exercise log
 func (r *ExerciseLogRepository) Create(ctx context.Context, userID int, workoutID *int, exerciseID int, position int, sets *int, reps *int, timeSeconds *int, weight *float64, restSeconds *int, notes *string) (int64, error) {
 	log.Printf("Starting to create exercise log for exercise %d, user %d", exerciseID, userID)

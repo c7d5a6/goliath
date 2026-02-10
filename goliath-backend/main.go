@@ -60,7 +60,7 @@ func main() {
 	exerciseHandlers := handlers.NewExerciseHandlers(exerciseService)
 	userHandlers := handlers.NewUserHandlers(userService)
 	workoutHandlers := handlers.NewWorkoutHandlers(workoutService)
-	exerciseLogHandlers := handlers.NewExerciseLogHandlers(exerciseLogService)
+	exerciseLogHandlers := handlers.NewExerciseLogHandlers(exerciseLogService, db)
 
 	// Setup router
 	r := gin.Default()
@@ -134,6 +134,7 @@ func main() {
 		auth.GET("/exercises/:id/logs", exerciseLogHandlers.GetExerciseLogsByExercise)
 		auth.GET("/workouts/:id/logs", exerciseLogHandlers.GetExerciseLogsByWorkout)
 		auth.GET("/workouts/:id/latest-logs", exerciseLogHandlers.GetLatestLogsByWorkout)
+		auth.GET("/workouts/:id/intensity", exerciseLogHandlers.GetWorkoutIntensity)
 	}
 
 	// Admin-only routes

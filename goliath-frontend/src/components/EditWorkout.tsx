@@ -3,6 +3,7 @@ import { useNavigate, useParams } from '@solidjs/router'
 import { apiGet, apiPut, apiPost, apiDelete } from '../api'
 import { useAuth } from '../auth'
 import { A } from '@solidjs/router'
+import MultiBarChart from './MultiBarChart'
 
 interface Workout {
   id: number
@@ -58,6 +59,16 @@ interface ExerciseLogsResponse {
   count: number
 }
 
+interface IntensityArea {
+  area_id: number
+  area_name: string
+  weeks: Record<string, number>
+}
+
+interface IntensityResponse {
+  areas: IntensityArea[]
+}
+
 async function fetchWorkout(id: number) {
   return apiGet<Workout>(`/workouts/${id}`)
 }
@@ -81,6 +92,10 @@ async function fetchLatestLogs(id: number) {
   return apiGet<ExerciseLogsResponse>(`/workouts/${id}/latest-logs`)
 }
 
+async function fetchIntensityData(id: number) {
+  return apiGet<IntensityResponse>(`/workouts/${id}/intensity`)
+}
+
 export default function EditWorkout() {
   const params = useParams()
   const navigate = useNavigate()
@@ -92,6 +107,7 @@ export default function EditWorkout() {
   const [allExercises] = createResource(fetchAllExercises)
   const [workoutExerciseAreas, { refetch: refetchExerciseAreas }] = createResource(() => workoutId, fetchWorkoutExerciseAreas)
   const [latestLogs, { refetch: refetchLatestLogs }] = createResource(() => workoutId, fetchLatestLogs)
+  const [intensityData] = createResource(() => workoutId, fetchIntensityData)
   
   const [name, setName] = createSignal('')
   const [error, setError] = createSignal('')
@@ -154,6 +170,42 @@ export default function EditWorkout() {
     }
 
     return Array.from(groups.values()).sort((a, b) => b.date.localeCompare(a.date))
+  })
+
+  // Transform intensity data for chart
+  const intensityChartData = createMemo(() => {
+    const data = intensityData()
+    if (!data || !data.areas || data.areas.length === 0) {
+      return { labels: [], datasets: [] }
+    }
+
+    // Get primary area IDs to filter the chart data
+    const primaryAreaIds = new Set(
+      splitExerciseAreas().primary.map(area => area.exercise_area_id)
+    )
+
+    // Filter to only include primary areas
+    const primaryAreasData = data.areas.filter(area => 
+      primaryAreaIds.has(area.area_id)
+    )
+
+    if (primaryAreasData.length === 0) {
+      return { labels: [], datasets: [] }
+    }
+
+    // Labels for x-axis
+    const labels = ['Week -4', 'Week -3', 'Week -2', 'Week -1', 'Current Week', 'This Workout']
+    const weekKeys = ['week_4', 'week_3', 'week_2', 'week_1', 'week_0', 'workout']
+
+    // Create dataset for each primary area
+    const datasets = primaryAreasData.map(area => ({
+      label: area.area_name,
+      data: weekKeys.map(key => area.weeks[key] || 0),
+      backgroundColor: '', // Will be auto-assigned from palette
+      borderColor: '',
+    }))
+
+    return { labels, datasets }
   })
 
   // Initialize form with workout data when loaded
@@ -552,6 +604,19 @@ export default function EditWorkout() {
             <Show when={(workoutExercises() || []).length > 0 && (workoutExerciseAreas() || []).length > 0}>
               <div class="border-t border-slate-200 pt-6">
                 <h3 class="text-lg font-semibold text-slate-900 mb-4">Targeted Exercise Areas</h3>
+                
+                {/* Intensity Chart */}
+                <Show when={intensityChartData().datasets.length > 0}>
+                  <div class="bg-white rounded-lg p-4 border border-slate-200 mb-4">
+                    <MultiBarChart
+                      labels={intensityChartData().labels}
+                      datasets={intensityChartData().datasets}
+                      height="300px"
+                      yAxisLabel="Intensity"
+                    />
+                  </div>
+                </Show>
+
                 <div class="bg-slate-50 rounded-lg p-5 border border-slate-200">
                   {/* Primary areas (within 25% of max) */}
                   <div class="flex flex-wrap gap-2.5">

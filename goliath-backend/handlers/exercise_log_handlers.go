@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"database/sql"
 	"goliath/middleware"
 	"goliath/services"
 	"log"
@@ -12,12 +13,14 @@ import (
 // ExerciseLogHandlers handles HTTP requests for exercise log-related endpoints
 type ExerciseLogHandlers struct {
 	exerciseLogService *services.ExerciseLogService
+	db                 *sql.DB
 }
 
 // NewExerciseLogHandlers creates a new ExerciseLogHandlers
-func NewExerciseLogHandlers(exerciseLogService *services.ExerciseLogService) *ExerciseLogHandlers {
+func NewExerciseLogHandlers(exerciseLogService *services.ExerciseLogService, db *sql.DB) *ExerciseLogHandlers {
 	return &ExerciseLogHandlers{
 		exerciseLogService: exerciseLogService,
+		db:                 db,
 	}
 }
 
@@ -257,6 +260,38 @@ func (h *ExerciseLogHandlers) UpdateExerciseLog(c *gin.Context) {
 	}
 
 	c.JSON(200, gin.H{"message": "Exercise log updated successfully"})
+}
+
+// GetWorkoutIntensity handles GET /workouts/:id/intensity
+func (h *ExerciseLogHandlers) GetWorkoutIntensity(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	user, hasUser := middleware.GetUserFromContext(ctx)
+	if !hasUser {
+		c.JSON(401, gin.H{"error": "Authentication required"})
+		return
+	}
+
+	workoutIDStr := c.Param("id")
+	workoutID, err := strconv.Atoi(workoutIDStr)
+	if err != nil {
+		c.JSON(400, gin.H{"error": "Invalid workout ID"})
+		return
+	}
+
+	log.Printf("=== Handler: Starting intensity calculation for workout %d, user %d ===", workoutID, user.ID)
+
+	// Get the DB executor (transaction if available, otherwise raw DB)
+	dbExecutor := middleware.GetDBFromContext(ctx, h.db)
+	
+	result, err := h.exerciseLogService.GetWorkoutIntensityData(ctx, user.ID, workoutID, dbExecutor)
+	if err != nil {
+		log.Printf("Error calculating intensity: %v", err)
+		c.JSON(500, gin.H{"error": "Failed to calculate intensity"})
+		return
+	}
+
+	c.JSON(200, result)
 }
 
 // DeleteExerciseLog handles DELETE /exercise-logs/:id
