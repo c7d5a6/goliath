@@ -183,8 +183,8 @@ export default function EditWorkout() {
     const maxPercentage = areas[0].percentage // Already sorted descending
     const threshold = maxPercentage - 25
     
-    const primary = areas.filter(area => area.percentage >= threshold)
-    const secondary = areas.filter(area => area.percentage < threshold)
+    const primary = areas.filter(area => area.percentage >= threshold || area.percentage >= 70)
+    const secondary = areas.filter(area => area.percentage < threshold && area.percentage < 70)
     
     return { primary, secondary }
   }
