@@ -128,6 +128,7 @@ export default function EditWorkout() {
   // Exercise logging state
   const [loggingExercise, setLoggingExercise] = createSignal<WorkoutExercise | null>(null)
   const [isLogging, setIsLogging] = createSignal(false)
+  const [recentlyLogged, setRecentlyLogged] = createSignal<Set<number>>(new Set())
 
   // Latest logs grouped by day
   const formatLogDate = (dateStr: string): string => {
@@ -435,10 +436,20 @@ export default function EditWorkout() {
         notes: exercise.notes,
       })
       
-      // Show success message briefly
       setError('')
       refetchLatestLogs()
-      alert(t('editWorkout.loggedSuccess') ?? 'Exercise logged successfully!')
+      
+      // Mark as recently logged with animation
+      setRecentlyLogged(prev => new Set(prev).add(exercise.exercise_id))
+      
+      // Auto-clear after 3 seconds
+      setTimeout(() => {
+        setRecentlyLogged(prev => {
+          const newSet = new Set(prev)
+          newSet.delete(exercise.exercise_id)
+          return newSet
+        })
+      }, 30000)
     } catch (err: any) {
       setError(err.message || (t('editWorkout.failedToLog') ?? 'Failed to log exercise'))
     } finally {
@@ -471,7 +482,18 @@ export default function EditWorkout() {
       setLoggingExercise(null)
       setError('')
       refetchLatestLogs()
-      alert(t('editWorkout.loggedSuccess') ?? 'Exercise logged successfully!')
+      
+      // Mark as recently logged with animation
+      setRecentlyLogged(prev => new Set(prev).add(ex.exercise_id))
+      
+      // Auto-clear after 3 seconds
+      setTimeout(() => {
+        setRecentlyLogged(prev => {
+          const newSet = new Set(prev)
+          newSet.delete(ex.exercise_id)
+          return newSet
+        })
+      }, 30000)
     } catch (err: any) {
       setError(err.message || (t('editWorkout.failedToLog') ?? 'Failed to log exercise'))
     } finally {
@@ -853,26 +875,54 @@ export default function EditWorkout() {
                               </button>
                             </div>
                             <div class="flex flex-col gap-1">
-                              <button
-                                onClick={() => handleQuickLogExercise(ex)}
-                                disabled={isLogging()}
-                                class="w-7 h-7 flex items-center justify-center text-green-500 hover:text-green-700 hover:bg-green-50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                title={t('editWorkout.quickLog') ?? ''}
+                              <Show
+                                when={!recentlyLogged().has(ex.exercise_id)}
+                                fallback={
+                                  <div
+                                    class="w-7 h-7 flex items-center justify-center text-green-600 bg-green-50 rounded border border-green-200"
+                                    title={t('editWorkout.loggedSuccess') ?? ''}
+                                  >
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                  </div>
+                                }
                               >
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                </svg>
-                              </button>
-                              <button
-                                onClick={() => handleOpenLogModal(ex)}
-                                disabled={isLogging()}
-                                class="w-7 h-7 flex items-center justify-center text-accent-500 hover:text-accent-700 hover:bg-accent-50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                title={t('editWorkout.logWithEdits') ?? ''}
+                                <button
+                                  onClick={() => handleQuickLogExercise(ex)}
+                                  disabled={isLogging()}
+                                  class="w-7 h-7 flex items-center justify-center text-green-500 hover:text-green-700 hover:bg-green-50 rounded transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
+                                  title={t('editWorkout.quickLog') ?? ''}
+                                >
+                                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                  </svg>
+                                </button>
+                              </Show>
+                              <Show
+                                when={!recentlyLogged().has(ex.exercise_id)}
+                                fallback={
+                                  <div
+                                    class="w-7 h-7 flex items-center justify-center text-green-600 bg-green-50 rounded border border-green-200"
+                                    title={t('editWorkout.loggedSuccess') ?? ''}
+                                  >
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                  </div>
+                                }
                               >
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                </svg>
-                              </button>
+                                <button
+                                  onClick={() => handleOpenLogModal(ex)}
+                                  disabled={isLogging()}
+                                  class="w-7 h-7 flex items-center justify-center text-accent-500 hover:text-accent-700 hover:bg-accent-50 rounded transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
+                                  title={t('editWorkout.logWithEdits') ?? ''}
+                                >
+                                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                  </svg>
+                                </button>
+                              </Show>
                             </div>
                           </div>
                         </div>
