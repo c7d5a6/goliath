@@ -1,10 +1,12 @@
 import { createSignal, Show } from 'solid-js'
 import { useAuth } from '../auth'
 import { useNavigate } from '@solidjs/router'
+import { useI18n } from '../i18n'
 
 export default function Login() {
   const auth = useAuth()
   const navigate = useNavigate()
+  const { t } = useI18n()
   
   const [email, setEmail] = createSignal('')
   const [password, setPassword] = createSignal('')
@@ -51,10 +53,10 @@ export default function Login() {
         {/* Header */}
         <div class="text-center mb-8">
           <h1 class="text-3xl font-bold text-slate-900 mb-2">
-            💪 Goliath Fitness
+            💪 {t('app.title')}
           </h1>
           <p class="text-slate-600">
-            {mode() === 'login' ? 'Sign in to your account' : 'Create a new account'}
+            {mode() === 'login' ? t('auth.signInToAccount') : t('auth.createAccount')}
           </p>
         </div>
 
@@ -69,7 +71,7 @@ export default function Login() {
         <form onSubmit={handleEmailAuth} class="space-y-4">
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1">
-              Email
+              {t('auth.email')}
             </label>
             <input
               type="email"
@@ -77,7 +79,7 @@ export default function Login() {
               class="w-full px-4 py-3 border border-slate-200 rounded-lg text-sm
                      focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
                      transition-shadow"
-              placeholder="you@example.com"
+              placeholder={t('auth.emailPlaceholder') ?? ''}
               value={email()}
               onInput={(e) => setEmail(e.currentTarget.value)}
             />
@@ -85,7 +87,7 @@ export default function Login() {
 
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1">
-              Password
+              {t('auth.password')}
             </label>
             <input
               type="password"
@@ -94,7 +96,7 @@ export default function Login() {
               class="w-full px-4 py-3 border border-slate-200 rounded-lg text-sm
                      focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
                      transition-shadow"
-              placeholder="••••••••"
+              placeholder={t('auth.passwordPlaceholder') ?? ''}
               value={password()}
               onInput={(e) => setPassword(e.currentTarget.value)}
             />
@@ -107,14 +109,14 @@ export default function Login() {
                    hover:bg-primary-600 active:scale-[0.98] transition-all
                    disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading() ? 'Please wait...' : mode() === 'login' ? 'Sign In' : 'Sign Up'}
+            {loading() ? t('auth.pleaseWait') : mode() === 'login' ? t('auth.signIn') : t('auth.signUp')}
           </button>
         </form>
 
         {/* Divider */}
         <div class="flex items-center my-6">
           <div class="flex-1 border-t border-slate-200"></div>
-          <span class="px-4 text-sm text-slate-500">or</span>
+          <span class="px-4 text-sm text-slate-500">{t('auth.or')}</span>
           <div class="flex-1 border-t border-slate-200"></div>
         </div>
 
@@ -145,29 +147,29 @@ export default function Login() {
               d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
             />
           </svg>
-          Continue with Google
+          {t('auth.continueWithGoogle')}
         </button>
 
         {/* Toggle Mode */}
         <div class="mt-6 text-center text-sm text-slate-600">
           {mode() === 'login' ? (
             <>
-              Don't have an account?{' '}
+              {t('auth.noAccount')}{' '}
               <button
                 onClick={() => setMode('signup')}
                 class="text-primary-500 hover:text-primary-600 font-medium"
               >
-                Sign up
+                {t('auth.signUp')}
               </button>
             </>
           ) : (
             <>
-              Already have an account?{' '}
+              {t('auth.hasAccount')}{' '}
               <button
                 onClick={() => setMode('login')}
                 class="text-primary-500 hover:text-primary-600 font-medium"
               >
-                Sign in
+                {t('auth.signIn')}
               </button>
             </>
           )}
@@ -176,4 +178,3 @@ export default function Login() {
     </div>
   )
 }
-

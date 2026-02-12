@@ -4,6 +4,7 @@ import { apiGet, apiPut, apiPost, apiDelete } from '../api'
 import { useAuth } from '../auth'
 import { A } from '@solidjs/router'
 import MultiBarChart from './MultiBarChart'
+import { useI18n, useDateLocale, plural, useTranslateArea, useTranslateExerciseType } from '../i18n'
 
 interface Workout {
   id: number
@@ -101,7 +102,11 @@ export default function EditWorkout() {
   const navigate = useNavigate()
   const auth = useAuth()
   const workoutId = parseInt(params.id || '0')
-  
+  const { t } = useI18n()
+  const dateLocale = useDateLocale()
+  const tArea = useTranslateArea()
+  const tExerciseType = useTranslateExerciseType()
+
   const [workout] = createResource(() => workoutId, fetchWorkout)
   const [workoutExercises, { refetch: refetchExercises }] = createResource(() => workoutId, fetchWorkoutExercises)
   const [allExercises] = createResource(fetchAllExercises)
@@ -127,12 +132,12 @@ export default function EditWorkout() {
   // Latest logs grouped by day
   const formatLogDate = (dateStr: string): string => {
     const date = new Date(dateStr)
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+    return date.toLocaleDateString(dateLocale(), { year: 'numeric', month: 'short', day: 'numeric' })
   }
 
   const formatLogTime = (dateStr: string): string => {
     const date = new Date(dateStr)
-    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+    return date.toLocaleTimeString(dateLocale(), { hour: '2-digit', minute: '2-digit' })
   }
 
   const getDateKey = (dateStr: string): string => {
@@ -150,10 +155,10 @@ export default function EditWorkout() {
     const todayKey = getDateKey(today.toISOString())
     const yesterdayKey = getDateKey(yesterday.toISOString())
 
-    if (dateKey === todayKey) return 'Today'
-    if (dateKey === yesterdayKey) return 'Yesterday'
+    if (dateKey === todayKey) return t('exerciseLog.today') ?? 'Today'
+    if (dateKey === yesterdayKey) return t('exerciseLog.yesterday') ?? 'Yesterday'
 
-    const dayName = date.toLocaleDateString('en-US', { weekday: 'long' })
+    const dayName = date.toLocaleDateString(dateLocale(), { weekday: 'long' })
     return `${dayName}, ${formatLogDate(dateStr)}`
   }
 
@@ -194,12 +199,19 @@ export default function EditWorkout() {
     }
 
     // Labels for x-axis
-    const labels = ['Week -4', 'Week -3', 'Week -2', 'Week -1', 'Current Week', 'This Workout']
+    const labels = [
+      t('editWorkout.weekMinus4') ?? 'Week -4',
+      t('editWorkout.weekMinus3') ?? 'Week -3',
+      t('editWorkout.weekMinus2') ?? 'Week -2',
+      t('editWorkout.weekMinus1') ?? 'Week -1',
+      t('editWorkout.currentWeek') ?? 'Current Week',
+      t('editWorkout.thisWorkout') ?? 'This Workout',
+    ]
     const weekKeys = ['week_4', 'week_3', 'week_2', 'week_1', 'week_0', 'workout']
 
     // Create dataset for each primary area
     const datasets = primaryAreasData.map(area => ({
-      label: area.area_name,
+      label: tArea(area.area_name),
       data: weekKeys.map(key => area.weeks[key] || 0),
       backgroundColor: '', // Will be auto-assigned from palette
       borderColor: '',
@@ -283,7 +295,7 @@ export default function EditWorkout() {
     setError('')
 
     if (!name().trim()) {
-      setError('Workout name is required')
+      setError(t('editWorkout.nameRequired') ?? 'Workout name is required')
       return
     }
 
@@ -330,7 +342,7 @@ export default function EditWorkout() {
       refetchExerciseAreas()
       refetchLatestLogs()
     } catch (err: any) {
-      setError(err.message || 'Failed to add exercise')
+      setError(err.message || (t('editWorkout.failedToAdd') ?? 'Failed to add exercise'))
     }
   }
 
@@ -353,12 +365,12 @@ export default function EditWorkout() {
       refetchExercises()
       refetchExerciseAreas()
     } catch (err: any) {
-      setError(err.message || 'Failed to update exercise')
+      setError(err.message || (t('editWorkout.failedToUpdate') ?? 'Failed to update exercise'))
     }
   }
 
   const handleRemoveExercise = async (workoutExerciseId: number) => {
-    if (!confirm('Remove this exercise from the workout?')) return
+    if (!confirm(t('editWorkout.removeConfirm') ?? 'Remove this exercise from the workout?')) return
 
     try {
       await apiDelete(`/workouts/${workoutId}/exercises/${workoutExerciseId}`)
@@ -366,7 +378,7 @@ export default function EditWorkout() {
       refetchExerciseAreas()
       refetchLatestLogs()
     } catch (err: any) {
-      setError(err.message || 'Failed to remove exercise')
+      setError(err.message || (t('editWorkout.failedToRemove') ?? 'Failed to remove exercise'))
     }
   }
 
@@ -404,7 +416,7 @@ export default function EditWorkout() {
       
       refetchExercises()
     } catch (err: any) {
-      setError(err.message || 'Failed to reorder exercise')
+      setError(err.message || (t('editWorkout.failedToReorder') ?? 'Failed to reorder exercise'))
     }
   }
 
@@ -426,9 +438,9 @@ export default function EditWorkout() {
       // Show success message briefly
       setError('')
       refetchLatestLogs()
-      alert('Exercise logged successfully!')
+      alert(t('editWorkout.loggedSuccess') ?? 'Exercise logged successfully!')
     } catch (err: any) {
-      setError(err.message || 'Failed to log exercise')
+      setError(err.message || (t('editWorkout.failedToLog') ?? 'Failed to log exercise'))
     } finally {
       setIsLogging(false)
     }
@@ -459,9 +471,9 @@ export default function EditWorkout() {
       setLoggingExercise(null)
       setError('')
       refetchLatestLogs()
-      alert('Exercise logged successfully!')
+      alert(t('editWorkout.loggedSuccess') ?? 'Exercise logged successfully!')
     } catch (err: any) {
-      setError(err.message || 'Failed to log exercise')
+      setError(err.message || (t('editWorkout.failedToLog') ?? 'Failed to log exercise'))
     } finally {
       setIsLogging(false)
     }
@@ -473,7 +485,7 @@ export default function EditWorkout() {
       <div class="p-6 border-b border-slate-200 bg-gradient-to-r from-primary-50 to-accent-50">
         <div class="flex items-center justify-between gap-3">
           <Show when={!editingName()}>
-            <h2 class="text-xl font-bold text-slate-900 truncate">{name() || 'Loading...'}</h2>
+            <h2 class="text-xl font-bold text-slate-900 truncate">{name() || t('common.loading')}</h2>
           </Show>
           <Show when={editingName()}>
             <form onSubmit={handleSubmit} class="flex-1 flex items-center gap-2">
@@ -481,7 +493,7 @@ export default function EditWorkout() {
                 type="text"
                 value={name()}
                 onInput={(e) => setName(e.currentTarget.value)}
-                placeholder="Workout name"
+                placeholder={t('editWorkout.workoutNamePlaceholder') ?? ''}
                 class="flex-1 px-3 py-1.5 border border-slate-200 rounded-lg text-sm bg-white 
                        focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 required
@@ -491,7 +503,7 @@ export default function EditWorkout() {
                 type="submit"
                 disabled={isSubmitting()}
                 class="w-8 h-8 flex items-center justify-center text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
-                title="Save name"
+                title={t('editWorkout.saveName') ?? ''}
               >
                 <Show when={isSubmitting()} fallback={
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -505,7 +517,7 @@ export default function EditWorkout() {
                 type="button"
                 onClick={() => { setEditingName(false); setName(workout()?.name || '') }}
                 class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
-                title="Cancel"
+                title={t('common.cancel') ?? ''}
               >
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -518,7 +530,7 @@ export default function EditWorkout() {
               <button
                 onClick={() => setEditingName(true)}
                 class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
-                title="Edit workout name"
+                title={t('editWorkout.editName') ?? ''}
               >
                 <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -527,7 +539,7 @@ export default function EditWorkout() {
               <button
                 onClick={() => navigate('/workouts')}
                 class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
-                title="Back to Workouts"
+                title={t('editWorkout.backToWorkouts') ?? ''}
               >
                 <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -542,13 +554,13 @@ export default function EditWorkout() {
         <div class="p-6">
           <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-6 text-center">
             <div class="text-4xl mb-3">🔒</div>
-            <h3 class="text-lg font-semibold text-slate-900 mb-2">Authentication Required</h3>
-            <p class="text-slate-600 mb-4">Please sign in to edit workouts.</p>
+            <h3 class="text-lg font-semibold text-slate-900 mb-2">{t('auth.authRequired')}</h3>
+            <p class="text-slate-600 mb-4">{t('auth.pleaseSignInEditWorkouts')}</p>
             <A
               href="/login"
               class="inline-block px-6 py-2 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600"
             >
-              Sign In
+              {t('auth.signIn')}
             </A>
           </div>
         </div>
@@ -558,7 +570,7 @@ export default function EditWorkout() {
         <Show when={workout.loading}>
           <div class="flex flex-col items-center justify-center py-16 text-slate-500">
             <div class="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-            <span>Loading workout...</span>
+            <span>{t('editWorkout.loading')}</span>
           </div>
         </Show>
 
@@ -567,7 +579,7 @@ export default function EditWorkout() {
             <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start gap-3">
               <span class="text-lg">⚠️</span>
               <div class="flex-1">
-                <p class="font-medium">Error Loading Workout</p>
+                <p class="font-medium">{t('editWorkout.errorLoading')}</p>
                 <p class="text-sm mt-0.5">{workout.error?.message}</p>
               </div>
             </div>
@@ -575,7 +587,7 @@ export default function EditWorkout() {
               onClick={() => navigate('/workouts')}
               class="mt-4 px-6 py-2 bg-slate-100 text-slate-700 rounded-lg font-medium hover:bg-slate-200"
             >
-              Back to Workouts
+              {t('editWorkout.backToWorkouts')}
             </button>
           </div>
         </Show>
@@ -587,7 +599,7 @@ export default function EditWorkout() {
               <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start gap-3">
                 <span class="text-lg">⚠️</span>
                 <div class="flex-1">
-                  <p class="font-medium">Error</p>
+                  <p class="font-medium">{t('common.error')}</p>
                   <p class="text-sm mt-0.5">{error()}</p>
                 </div>
                 <button
@@ -603,7 +615,7 @@ export default function EditWorkout() {
             {/* Exercise Areas Summary */}
             <Show when={(workoutExercises() || []).length > 0 && (workoutExerciseAreas() || []).length > 0}>
               <div class="border-t border-slate-200 pt-6">
-                <h3 class="text-lg font-semibold text-slate-900 mb-4">Targeted Exercise Areas</h3>
+                <h3 class="text-lg font-semibold text-slate-900 mb-4">{t('editWorkout.targetedAreas')}</h3>
                 
                 {/* Intensity Chart */}
                 <Show when={intensityChartData().datasets.length > 0}>
@@ -612,7 +624,7 @@ export default function EditWorkout() {
                       labels={intensityChartData().labels}
                       datasets={intensityChartData().datasets}
                       height="300px"
-                      yAxisLabel="Intensity"
+                      yAxisLabel={t('editWorkout.intensity') ?? 'Intensity'}
                     />
                   </div>
                 </Show>
@@ -623,7 +635,7 @@ export default function EditWorkout() {
                     <For each={splitExerciseAreas().primary}>
                       {(area) => (
                         <div class="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
-                          <span class="font-medium text-slate-700 text-sm">{area.exercise_area_name}</span>
+                          <span class="font-medium text-slate-700 text-sm">{tArea(area.exercise_area_name)}</span>
                           <div class="flex items-center gap-1.5">
                             <div class="h-1.5 w-14 bg-slate-200 rounded-full overflow-hidden">
                               <div 
@@ -649,7 +661,7 @@ export default function EditWorkout() {
                       >
                         <span class="text-[10px]">{showAllAreas() ? '▼' : '▶'}</span>
                         <span>
-                          {showAllAreas() ? 'Hide' : 'Show all'} ({splitExerciseAreas().secondary.length} more)
+                          {showAllAreas() ? t('editWorkout.hideAreas') : t('editWorkout.showAllAreas')} {t('editWorkout.moreAreas', { count: String(splitExerciseAreas().secondary.length) })}
                         </span>
                       </button>
                       
@@ -658,7 +670,7 @@ export default function EditWorkout() {
                           <For each={splitExerciseAreas().secondary}>
                             {(area) => (
                               <div class="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg border border-slate-200 opacity-60">
-                                <span class="font-medium text-slate-600 text-sm">{area.exercise_area_name}</span>
+                                <span class="font-medium text-slate-600 text-sm">{tArea(area.exercise_area_name)}</span>
                                 <div class="flex items-center gap-1.5">
                                   <div class="h-1.5 w-14 bg-slate-200 rounded-full overflow-hidden">
                                     <div 
@@ -679,7 +691,7 @@ export default function EditWorkout() {
                   </Show>
 
                   <div class="mt-3 text-xs text-slate-500 italic">
-                    Mean activation across all exercises in this workout
+                    {t('editWorkout.meanActivation')}
                   </div>
                 </div>
               </div>
@@ -689,7 +701,7 @@ export default function EditWorkout() {
             <div class="border-t border-slate-200 pt-6">
               <div class="flex justify-between items-center mb-4">
                 <div class="flex items-center gap-3">
-                  <h3 class="text-lg font-semibold text-slate-900">Exercises</h3>
+                  <h3 class="text-lg font-semibold text-slate-900">{t('editWorkout.exercises')}</h3>
                   <Show when={(workoutExercises() || []).length > 0}>
                     <div class="px-3 py-1 bg-primary-50 text-primary-700 rounded-full text-sm font-medium flex items-center gap-1.5">
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -704,7 +716,7 @@ export default function EditWorkout() {
                   class="px-4 py-2 bg-accent-500 text-white rounded-lg text-sm font-medium
                          hover:bg-accent-600 active:scale-[0.98] transition-all"
                 >
-                  ➕ Add Exercise
+                  {t('editWorkout.addExercise')}
                 </button>
               </div>
 
@@ -715,7 +727,7 @@ export default function EditWorkout() {
                     type="text"
                     value={searchExercise()}
                     onInput={(e) => setSearchExercise(e.currentTarget.value)}
-                    placeholder="Search exercises..."
+                    placeholder={t('editWorkout.searchExercises') ?? ''}
                     class="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm bg-white 
                            focus:outline-none focus:ring-2 focus:ring-primary-500"
                   />
@@ -731,9 +743,9 @@ export default function EditWorkout() {
                           >
                             <div>
                               <div class="text-sm font-medium text-slate-900">{exercise.name}</div>
-                              <div class="text-xs text-slate-500">{exercise.type}</div>
+                              <div class="text-xs text-slate-500">{tExerciseType(exercise.type)}</div>
                             </div>
-                            <span class="text-primary-500 opacity-0 group-hover:opacity-100">+ Add</span>
+                            <span class="text-primary-500 opacity-0 group-hover:opacity-100">{t('common.add')}</span>
                           </button>
                         )}
                       </For>
@@ -746,14 +758,14 @@ export default function EditWorkout() {
               <Show when={workoutExercises.loading}>
                 <div class="text-center py-8 text-slate-500">
                   <div class="w-6 h-6 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-                  Loading exercises...
+                  {t('editWorkout.loadingExercises')}
                 </div>
               </Show>
 
               <Show when={!workoutExercises.loading && workoutExercises() && workoutExercises()!.length === 0}>
                 <div class="text-center py-12 text-slate-400">
                   <div class="text-4xl mb-2">💪</div>
-                  <p>No exercises added yet. Click "Add Exercise" to get started.</p>
+                  <p>{t('editWorkout.noExercisesYet')}</p>
                 </div>
               </Show>
 
@@ -769,7 +781,7 @@ export default function EditWorkout() {
                               onClick={() => handleMoveExercise(ex, 'up')}
                               disabled={(workoutExercises() || []).findIndex(e => e.id === ex.id) === 0}
                               class="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded disabled:opacity-30 disabled:cursor-not-allowed"
-                              title="Move up"
+                              title={t('editWorkout.moveUp') ?? ''}
                             >
                               ▲
                             </button>
@@ -777,7 +789,7 @@ export default function EditWorkout() {
                               onClick={() => handleMoveExercise(ex, 'down')}
                               disabled={(workoutExercises() || []).findIndex(e => e.id === ex.id) === (workoutExercises() || []).length - 1}
                               class="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded disabled:opacity-30 disabled:cursor-not-allowed"
-                              title="Move down"
+                              title={t('editWorkout.moveDown') ?? ''}
                             >
                               ▼
                             </button>
@@ -785,16 +797,16 @@ export default function EditWorkout() {
                           
                           <div class="flex-1 min-w-0">
                             <div class="font-semibold text-slate-900">{ex.exercise_name}</div>
-                            <div class="text-xs text-slate-500 mb-2">{ex.exercise_type}</div>
+                            <div class="text-xs text-slate-500 mb-2">{tExerciseType(ex.exercise_type)}</div>
                             <div class="flex flex-wrap gap-2 text-sm">
                               <Show when={ex.sets}>
                                 <span class="px-2 py-0.5 bg-blue-50 text-blue-700 rounded">
-                                  {ex.sets} sets
+                                  {t('common.sets', { count: String(ex.sets) })}
                                 </span>
                               </Show>
                               <Show when={ex.reps}>
                                 <span class="px-2 py-0.5 bg-green-50 text-green-700 rounded">
-                                  {ex.reps} reps
+                                  {t('common.reps', { count: String(ex.reps) })}
                                 </span>
                               </Show>
                               <Show when={ex.time_seconds}>
@@ -809,7 +821,7 @@ export default function EditWorkout() {
                               </Show>
                               <Show when={ex.rest_seconds}>
                                 <span class="px-2 py-0.5 bg-slate-50 text-slate-700 rounded">
-                                  Rest: {ex.rest_seconds}s
+                                  {t('common.rest', { count: String(ex.rest_seconds) })}
                                 </span>
                               </Show>
                             </div>
@@ -824,7 +836,7 @@ export default function EditWorkout() {
                               <button
                                 onClick={() => setEditingExercise(ex)}
                                 class="w-7 h-7 flex items-center justify-center text-primary-500 hover:text-primary-700 hover:bg-primary-50 rounded transition-colors"
-                                title="Edit exercise"
+                                title={t('editWorkout.editExercise') ?? ''}
                               >
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -833,7 +845,7 @@ export default function EditWorkout() {
                               <button
                                 onClick={() => handleRemoveExercise(ex.id)}
                                 class="w-7 h-7 flex items-center justify-center text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
-                                title="Remove exercise"
+                                title={t('editWorkout.removeExercise') ?? ''}
                               >
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -845,7 +857,7 @@ export default function EditWorkout() {
                                 onClick={() => handleQuickLogExercise(ex)}
                                 disabled={isLogging()}
                                 class="w-7 h-7 flex items-center justify-center text-green-500 hover:text-green-700 hover:bg-green-50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                title="Quick log (save with current params)"
+                                title={t('editWorkout.quickLog') ?? ''}
                               >
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
@@ -855,7 +867,7 @@ export default function EditWorkout() {
                                 onClick={() => handleOpenLogModal(ex)}
                                 disabled={isLogging()}
                                 class="w-7 h-7 flex items-center justify-center text-accent-500 hover:text-accent-700 hover:bg-accent-50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                title="Log with edits"
+                                title={t('editWorkout.logWithEdits') ?? ''}
                               >
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -869,13 +881,12 @@ export default function EditWorkout() {
                       <Show when={editingExercise()?.id === ex.id}>
                         <div class="space-y-3">
                           <div class="font-semibold text-slate-900 mb-3">
-                            {ex.exercise_name} <span class="text-xs text-slate-500">({ex.exercise_type})</span>
+                            {ex.exercise_name} <span class="text-xs text-slate-500">({tExerciseType(ex.exercise_type)})</span>
                           </div>
                           <div class="grid grid-cols-2 gap-3">
-                            {/* Sets - for all types */}
                             <Show when={showSets(ex.exercise_type)}>
                               <div>
-                                <label class="block text-xs font-medium text-slate-700 mb-1">Sets</label>
+                                <label class="block text-xs font-medium text-slate-700 mb-1">{t('editWorkout.labelSets')}</label>
                                 <input
                                   type="number"
                                   value={editingExercise()?.sets || ''}
@@ -886,10 +897,9 @@ export default function EditWorkout() {
                               </div>
                             </Show>
                             
-                            {/* Reps - for Reps, Eccentric, Reps Weighted */}
                             <Show when={showReps(ex.exercise_type)}>
                               <div>
-                                <label class="block text-xs font-medium text-slate-700 mb-1">Reps</label>
+                                <label class="block text-xs font-medium text-slate-700 mb-1">{t('editWorkout.labelReps')}</label>
                                 <input
                                   type="number"
                                   value={editingExercise()?.reps || ''}
@@ -900,10 +910,9 @@ export default function EditWorkout() {
                               </div>
                             </Show>
                             
-                            {/* Time - for Isometric, Isometric Weighted */}
                             <Show when={showTime(ex.exercise_type)}>
                               <div>
-                                <label class="block text-xs font-medium text-slate-700 mb-1">Time (seconds)</label>
+                                <label class="block text-xs font-medium text-slate-700 mb-1">{t('editWorkout.labelTime')}</label>
                                 <input
                                   type="number"
                                   value={editingExercise()?.time_seconds || ''}
@@ -914,10 +923,9 @@ export default function EditWorkout() {
                               </div>
                             </Show>
                             
-                            {/* Weight - for Reps Weighted, Isometric Weighted */}
                             <Show when={showWeight(ex.exercise_type)}>
                               <div>
-                                <label class="block text-xs font-medium text-slate-700 mb-1">Weight (kg)</label>
+                                <label class="block text-xs font-medium text-slate-700 mb-1">{t('editWorkout.labelWeight')}</label>
                                 <input
                                   type="number"
                                   step="0.5"
@@ -929,10 +937,9 @@ export default function EditWorkout() {
                               </div>
                             </Show>
                             
-                            {/* Rest - for all types */}
                             <Show when={showRest(ex.exercise_type)}>
                               <div>
-                                <label class="block text-xs font-medium text-slate-700 mb-1">Rest (seconds)</label>
+                                <label class="block text-xs font-medium text-slate-700 mb-1">{t('editWorkout.labelRest')}</label>
                                 <input
                                   type="number"
                                   value={editingExercise()?.rest_seconds || ''}
@@ -944,13 +951,13 @@ export default function EditWorkout() {
                             </Show>
                           </div>
                           <div>
-                            <label class="block text-xs font-medium text-slate-700 mb-1">Notes</label>
+                            <label class="block text-xs font-medium text-slate-700 mb-1">{t('common.notes')}</label>
                             <input
                               type="text"
                               value={editingExercise()?.notes || ''}
                               onInput={(e) => setEditingExercise(prev => ({ ...prev!, notes: e.currentTarget.value || undefined }))}
                               class="w-full px-3 py-2 border border-slate-200 rounded text-sm"
-                              placeholder="Optional notes..."
+                              placeholder={t('common.optionalNotes') ?? ''}
                             />
                           </div>
                           <div class="flex gap-2 pt-2">
@@ -958,13 +965,13 @@ export default function EditWorkout() {
                               onClick={handleUpdateExercise}
                               class="px-4 py-2 bg-primary-500 text-white rounded text-sm hover:bg-primary-600"
                             >
-                              Save
+                              {t('common.save')}
                             </button>
                             <button
                               onClick={() => setEditingExercise(null)}
                               class="px-4 py-2 bg-slate-100 text-slate-700 rounded text-sm hover:bg-slate-200"
                             >
-                              Cancel
+                              {t('common.cancel')}
                             </button>
                           </div>
                         </div>
@@ -978,7 +985,7 @@ export default function EditWorkout() {
             {/* Last Logged Section */}
             <Show when={(latestLogs()?.exercise_logs ?? []).length > 0}>
               <div class="border-t border-slate-200 pt-6">
-                <h3 class="text-lg font-semibold text-slate-900 mb-4">Last Logged</h3>
+                <h3 class="text-lg font-semibold text-slate-900 mb-4">{t('editWorkout.lastLogged')}</h3>
 
                 {/* Desktop Table - single table for consistent column widths */}
                 <div class="hidden sm:block border border-slate-200 rounded-lg overflow-hidden">
@@ -991,10 +998,10 @@ export default function EditWorkout() {
                     </colgroup>
                     <thead>
                       <tr class="border-b border-slate-100">
-                        <th class="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-6 py-2">Time</th>
-                        <th class="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-6 py-2">Exercise</th>
-                        <th class="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-6 py-2">Details</th>
-                        <th class="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-6 py-2">Notes</th>
+                        <th class="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-6 py-2">{t('exerciseLog.time')}</th>
+                        <th class="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-6 py-2">{t('exerciseLog.exercise')}</th>
+                        <th class="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-6 py-2">{t('exerciseLog.details')}</th>
+                        <th class="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-6 py-2">{t('common.notes')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1010,7 +1017,7 @@ export default function EditWorkout() {
                                     <span class="font-semibold text-slate-800">{group.label}</span>
                                   </div>
                                   <span class="text-xs text-slate-500 bg-white px-2.5 py-1 rounded-full border border-slate-200">
-                                    {group.logs.length} {group.logs.length === 1 ? 'exercise' : 'exercises'}
+                                    {plural(group.logs.length, t('common.exercise_one') ?? 'exercise', t('common.exercise_other') ?? 'exercises')}
                                   </span>
                                 </div>
                               </td>
@@ -1024,18 +1031,18 @@ export default function EditWorkout() {
                                   </td>
                                   <td class="px-6 py-3">
                                     <div class="font-medium text-slate-900 text-sm truncate">{log.exercise_name}</div>
-                                    <div class="text-xs text-slate-500 truncate">{log.exercise_type}</div>
+                                    <div class="text-xs text-slate-500 truncate">{tExerciseType(log.exercise_type)}</div>
                                   </td>
                                   <td class="px-6 py-3">
                                     <div class="flex items-center gap-1.5 flex-wrap">
                                       <Show when={log.sets}>
                                         <span class="px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-medium whitespace-nowrap">
-                                          {log.sets} sets
+                                          {t('common.sets', { count: String(log.sets) })}
                                         </span>
                                       </Show>
                                       <Show when={log.reps}>
                                         <span class="px-1.5 py-0.5 bg-green-50 text-green-700 rounded text-xs font-medium whitespace-nowrap">
-                                          {log.reps} reps
+                                          {t('common.reps', { count: String(log.reps) })}
                                         </span>
                                       </Show>
                                       <Show when={log.time_seconds}>
@@ -1045,12 +1052,12 @@ export default function EditWorkout() {
                                       </Show>
                                       <Show when={log.weight}>
                                         <span class="px-1.5 py-0.5 bg-orange-50 text-orange-700 rounded text-xs font-medium whitespace-nowrap">
-                                          {log.weight}kg
+                                          {t('common.weight', { count: String(log.weight) })}
                                         </span>
                                       </Show>
                                       <Show when={log.rest_seconds}>
                                         <span class="px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded text-xs font-medium whitespace-nowrap">
-                                          ↻ {log.rest_seconds}s
+                                          {t('common.rest', { count: String(log.rest_seconds) })}
                                         </span>
                                       </Show>
                                     </div>
@@ -1084,7 +1091,7 @@ export default function EditWorkout() {
                             <span class="font-semibold text-slate-800 text-sm">{group.label}</span>
                           </div>
                           <span class="text-xs text-slate-500">
-                            {group.logs.length} {group.logs.length === 1 ? 'exercise' : 'exercises'}
+                            {plural(group.logs.length, t('common.exercise_one') ?? 'exercise', t('common.exercise_other') ?? 'exercises')}
                           </span>
                         </div>
                         <div class="space-y-2">
@@ -1094,7 +1101,7 @@ export default function EditWorkout() {
                                 <div class="flex-1 min-w-0 mb-2">
                                   <div class="font-medium text-slate-900 text-sm">{log.exercise_name}</div>
                                   <div class="flex items-center gap-2 text-xs text-slate-500">
-                                    <span>{log.exercise_type}</span>
+                                    <span>{tExerciseType(log.exercise_type)}</span>
                                     <span>·</span>
                                     <span>{formatLogTime(log.logged_when)}</span>
                                   </div>
@@ -1102,12 +1109,12 @@ export default function EditWorkout() {
                                 <div class="flex flex-wrap gap-1.5">
                                   <Show when={log.sets}>
                                     <span class="px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-medium">
-                                      {log.sets} sets
+                                      {t('common.sets', { count: String(log.sets) })}
                                     </span>
                                   </Show>
                                   <Show when={log.reps}>
                                     <span class="px-1.5 py-0.5 bg-green-50 text-green-700 rounded text-xs font-medium">
-                                      {log.reps} reps
+                                      {t('common.reps', { count: String(log.reps) })}
                                     </span>
                                   </Show>
                                   <Show when={log.time_seconds}>
@@ -1117,12 +1124,12 @@ export default function EditWorkout() {
                                   </Show>
                                   <Show when={log.weight}>
                                     <span class="px-1.5 py-0.5 bg-orange-50 text-orange-700 rounded text-xs font-medium">
-                                      {log.weight}kg
+                                      {t('common.weight', { count: String(log.weight) })}
                                     </span>
                                   </Show>
                                   <Show when={log.rest_seconds}>
                                     <span class="px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded text-xs font-medium">
-                                      ↻ {log.rest_seconds}s
+                                      {t('common.rest', { count: String(log.rest_seconds) })}
                                     </span>
                                   </Show>
                                 </div>
@@ -1148,8 +1155,8 @@ export default function EditWorkout() {
         <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div class="p-6 border-b border-slate-200 bg-gradient-to-r from-accent-50 to-primary-50">
-              <h3 class="text-xl font-bold text-slate-900">Log Exercise</h3>
-              <p class="text-sm text-slate-600 mt-1">Edit parameters before logging</p>
+              <h3 class="text-xl font-bold text-slate-900">{t('editWorkout.logExercise')}</h3>
+              <p class="text-sm text-slate-600 mt-1">{t('editWorkout.logExerciseSubtitle')}</p>
             </div>
             
             <div class="p-6">
@@ -1157,7 +1164,7 @@ export default function EditWorkout() {
                 <div class="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start gap-3">
                   <span class="text-lg">⚠️</span>
                   <div class="flex-1">
-                    <p class="font-medium">Error</p>
+                    <p class="font-medium">{t('common.error')}</p>
                     <p class="text-sm mt-0.5">{error()}</p>
                   </div>
                   <button
@@ -1172,14 +1179,13 @@ export default function EditWorkout() {
 
               <div class="space-y-4">
                 <div class="font-semibold text-slate-900 mb-3">
-                  {loggingExercise()?.exercise_name} <span class="text-xs text-slate-500">({loggingExercise()?.exercise_type})</span>
+                  {loggingExercise()?.exercise_name} <span class="text-xs text-slate-500">({tExerciseType(loggingExercise()?.exercise_type || '')})</span>
                 </div>
                 
                 <div class="grid grid-cols-2 gap-4">
-                  {/* Sets - for all types */}
                   <Show when={showSets(loggingExercise()?.exercise_type || '')}>
                     <div>
-                      <label class="block text-sm font-medium text-slate-700 mb-1">Sets</label>
+                      <label class="block text-sm font-medium text-slate-700 mb-1">{t('editWorkout.labelSets')}</label>
                       <input
                         type="number"
                         value={loggingExercise()?.sets || ''}
@@ -1190,10 +1196,9 @@ export default function EditWorkout() {
                     </div>
                   </Show>
                   
-                  {/* Reps - for Reps, Eccentric, Reps Weighted */}
                   <Show when={showReps(loggingExercise()?.exercise_type || '')}>
                     <div>
-                      <label class="block text-sm font-medium text-slate-700 mb-1">Reps</label>
+                      <label class="block text-sm font-medium text-slate-700 mb-1">{t('editWorkout.labelReps')}</label>
                       <input
                         type="number"
                         value={loggingExercise()?.reps || ''}
@@ -1204,10 +1209,9 @@ export default function EditWorkout() {
                     </div>
                   </Show>
                   
-                  {/* Time - for Isometric, Isometric Weighted */}
                   <Show when={showTime(loggingExercise()?.exercise_type || '')}>
                     <div>
-                      <label class="block text-sm font-medium text-slate-700 mb-1">Time (seconds)</label>
+                      <label class="block text-sm font-medium text-slate-700 mb-1">{t('editWorkout.labelTime')}</label>
                       <input
                         type="number"
                         value={loggingExercise()?.time_seconds || ''}
@@ -1218,10 +1222,9 @@ export default function EditWorkout() {
                     </div>
                   </Show>
                   
-                  {/* Weight - for Reps Weighted, Isometric Weighted */}
                   <Show when={showWeight(loggingExercise()?.exercise_type || '')}>
                     <div>
-                      <label class="block text-sm font-medium text-slate-700 mb-1">Weight (kg)</label>
+                      <label class="block text-sm font-medium text-slate-700 mb-1">{t('editWorkout.labelWeight')}</label>
                       <input
                         type="number"
                         step="0.5"
@@ -1233,10 +1236,9 @@ export default function EditWorkout() {
                     </div>
                   </Show>
                   
-                  {/* Rest - for all types */}
                   <Show when={showRest(loggingExercise()?.exercise_type || '')}>
                     <div>
-                      <label class="block text-sm font-medium text-slate-700 mb-1">Rest (seconds)</label>
+                      <label class="block text-sm font-medium text-slate-700 mb-1">{t('editWorkout.labelRest')}</label>
                       <input
                         type="number"
                         value={loggingExercise()?.rest_seconds || ''}
@@ -1249,12 +1251,12 @@ export default function EditWorkout() {
                 </div>
                 
                 <div>
-                  <label class="block text-sm font-medium text-slate-700 mb-1">Notes</label>
+                  <label class="block text-sm font-medium text-slate-700 mb-1">{t('common.notes')}</label>
                   <textarea
                     value={loggingExercise()?.notes || ''}
                     onInput={(e) => setLoggingExercise(prev => ({ ...prev!, notes: e.currentTarget.value || undefined }))}
                     class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent-500"
-                    placeholder="Optional notes..."
+                    placeholder={t('common.optionalNotes') ?? ''}
                     rows="3"
                   />
                 </div>
@@ -1272,7 +1274,7 @@ export default function EditWorkout() {
                 <Show when={isLogging()}>
                   <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                 </Show>
-                {isLogging() ? 'Logging...' : 'Log Exercise'}
+                {isLogging() ? t('editWorkout.logging') : t('editWorkout.logExercise')}
               </button>
               <button
                 onClick={() => setLoggingExercise(null)}
@@ -1281,7 +1283,7 @@ export default function EditWorkout() {
                        hover:bg-slate-200 active:scale-[0.98] transition-all
                        disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
             </div>
           </div>

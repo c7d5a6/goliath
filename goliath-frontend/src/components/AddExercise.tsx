@@ -1,6 +1,7 @@
 import { createSignal, createResource, For, Show } from 'solid-js'
 import { useNavigate } from '@solidjs/router'
 import { apiGet, apiPost } from '../api'
+import { useI18n, useTranslateMuscleGroup, useTranslateExerciseType } from '../i18n'
 
 interface Muscle {
   id: number
@@ -26,6 +27,9 @@ export default function AddExercise() {
   const navigate = useNavigate()
   const [muscles] = createResource(fetchMuscles)
   const [types] = createResource(fetchExerciseTypes)
+  const { t } = useI18n()
+  const tMuscleGroup = useTranslateMuscleGroup()
+  const tExerciseType = useTranslateExerciseType()
   
   const [name, setName] = createSignal('')
   const [selectedType, setSelectedType] = createSignal('')
@@ -71,11 +75,11 @@ export default function AddExercise() {
 
     // Validation
     if (!name().trim()) {
-      setError('Exercise name is required')
+      setError(t('addExercise.nameRequired') ?? 'Exercise name is required')
       return
     }
     if (!selectedType()) {
-      setError('Exercise type is required')
+      setError(t('addExercise.typeRequired') ?? 'Exercise type is required')
       return
     }
 
@@ -102,8 +106,8 @@ export default function AddExercise() {
   return (
     <div class="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
       <div class="p-6 border-b border-slate-200 bg-gradient-to-r from-primary-50 to-accent-50">
-        <h2 class="text-xl font-bold text-slate-900">Create New Exercise</h2>
-        <p class="text-sm text-slate-600 mt-1">Add a new exercise to the database</p>
+        <h2 class="text-xl font-bold text-slate-900">{t('addExercise.title')}</h2>
+        <p class="text-sm text-slate-600 mt-1">{t('addExercise.subtitle')}</p>
       </div>
 
       <form onSubmit={handleSubmit} class="p-6 space-y-6">
@@ -112,7 +116,7 @@ export default function AddExercise() {
           <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start gap-3">
             <span class="text-lg">⚠️</span>
             <div class="flex-1">
-              <p class="font-medium">Error</p>
+              <p class="font-medium">{t('common.error')}</p>
               <p class="text-sm mt-0.5">{error()}</p>
             </div>
             <button
@@ -128,13 +132,13 @@ export default function AddExercise() {
         {/* Exercise Name */}
         <div>
           <label class="block text-sm font-semibold text-slate-700 mb-2">
-            Exercise Name *
+            {t('addExercise.exerciseName')}
           </label>
           <input
             type="text"
             value={name()}
             onInput={(e) => setName(e.currentTarget.value)}
-            placeholder="e.g., Bench Press"
+            placeholder={t('addExercise.exerciseNamePlaceholder') ?? ''}
             class="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-white 
                    focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
                    placeholder:text-slate-400"
@@ -145,10 +149,10 @@ export default function AddExercise() {
         {/* Exercise Type */}
         <div>
           <label class="block text-sm font-semibold text-slate-700 mb-2">
-            Exercise Type *
+            {t('addExercise.exerciseType')}
           </label>
           <Show when={types.loading}>
-            <div class="text-sm text-slate-500">Loading types...</div>
+            <div class="text-sm text-slate-500">{t('addExercise.loadingTypes')}</div>
           </Show>
           <Show when={types()}>
             <select
@@ -158,9 +162,9 @@ export default function AddExercise() {
                      focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               required
             >
-              <option value="">Select exercise type...</option>
+              <option value="">{t('addExercise.selectType')}</option>
               <For each={types()}>
-                {(type) => <option value={type}>{type}</option>}
+                {(type) => <option value={type}>{tExerciseType(type)}</option>}
               </For>
             </select>
           </Show>
@@ -169,14 +173,14 @@ export default function AddExercise() {
         {/* Muscle Selection */}
         <div>
           <label class="block text-sm font-semibold text-slate-700 mb-2">
-            Targeted Muscles *
+            {t('addExercise.targetedMuscles')}
           </label>
           
           {/* Selected Muscles */}
           <div class="space-y-2 mb-4">
             <Show when={selectedMuscles().length === 0}>
               <div class="text-sm text-slate-400 italic py-3 text-center bg-slate-50 rounded-lg border border-dashed border-slate-200">
-                No muscles selected. Search and add muscles below.
+                {t('addExercise.noMusclesSelected')}
               </div>
             </Show>
             <For each={selectedMuscles()}>
@@ -184,7 +188,7 @@ export default function AddExercise() {
                 <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
                   <div class="flex-1">
                     <div class="font-medium text-slate-900 text-sm">{muscle.name}</div>
-                    <div class="text-xs text-slate-500">{muscle.muscle_group_name}</div>
+                    <div class="text-xs text-slate-500">{tMuscleGroup(muscle.muscle_group_name)}</div>
                   </div>
                   
                   {/* Star Rating */}
@@ -227,7 +231,7 @@ export default function AddExercise() {
                 type="text"
                 value={searchMuscle()}
                 onInput={(e) => setSearchMuscle(e.currentTarget.value)}
-                placeholder="Search muscles to add..."
+                placeholder={t('addExercise.searchMuscles') ?? ''}
                 class="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-white 
                        focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
                        placeholder:text-slate-400"
@@ -245,10 +249,10 @@ export default function AddExercise() {
                     >
                       <div>
                         <div class="text-sm font-medium text-slate-900">{muscle.name}</div>
-                        <div class="text-xs text-slate-500">{muscle.muscle_group_name}</div>
+                        <div class="text-xs text-slate-500">{tMuscleGroup(muscle.muscle_group_name)}</div>
                       </div>
                       <span class="text-primary-500 opacity-0 group-hover:opacity-100 transition-opacity">
-                        + Add
+                        {t('common.add')}
                       </span>
                     </button>
                   )}
@@ -258,7 +262,7 @@ export default function AddExercise() {
             
             <Show when={searchMuscle() && filteredMuscles().length === 0}>
               <div class="text-sm text-slate-400 italic py-2 text-center">
-                No muscles found
+                {t('addExercise.noMusclesFound')}
               </div>
             </Show>
           </div>
@@ -277,7 +281,7 @@ export default function AddExercise() {
             <Show when={isSubmitting()}>
               <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
             </Show>
-            {isSubmitting() ? 'Creating...' : 'Create Exercise'}
+            {isSubmitting() ? t('addExercise.creating') : t('addExercise.createExercise')}
           </button>
           <button
             type="button"
@@ -287,11 +291,10 @@ export default function AddExercise() {
                    hover:bg-slate-200 active:scale-[0.98] transition-all
                    disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Cancel
+            {t('common.cancel')}
           </button>
         </div>
       </form>
     </div>
   )
 }
-

@@ -2,6 +2,7 @@ import { createResource, For, Show, createMemo } from 'solid-js'
 import { A } from '@solidjs/router'
 import { apiGet, apiDelete } from '../api'
 import { useAuth } from '../auth'
+import { useI18n, useDateLocale, plural, useTranslateExerciseType } from '../i18n'
 
 interface ExerciseLog {
   id: number
@@ -35,48 +36,51 @@ async function fetchExerciseLogs(): Promise<ExerciseLogsResponse> {
   return apiGet<ExerciseLogsResponse>('/exercise-logs?limit=200')
 }
 
-function formatDate(dateStr: string): string {
-  const date = new Date(dateStr)
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  })
-}
-
-function formatTime(dateStr: string): string {
-  const date = new Date(dateStr)
-  return date.toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
-
-function getDateKey(dateStr: string): string {
-  const date = new Date(dateStr)
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
-}
-
-function getRelativeDayLabel(dateStr: string): string {
-  const date = new Date(dateStr)
-  const today = new Date()
-  const yesterday = new Date()
-  yesterday.setDate(yesterday.getDate() - 1)
-
-  const dateKey = getDateKey(dateStr)
-  const todayKey = getDateKey(today.toISOString())
-  const yesterdayKey = getDateKey(yesterday.toISOString())
-
-  if (dateKey === todayKey) return 'Today'
-  if (dateKey === yesterdayKey) return 'Yesterday'
-
-  const dayName = date.toLocaleDateString('en-US', { weekday: 'long' })
-  return `${dayName}, ${formatDate(dateStr)}`
-}
-
 export default function ExerciseLogs() {
   const auth = useAuth()
   const [data, { refetch }] = createResource(fetchExerciseLogs)
+  const { t } = useI18n()
+  const dateLocale = useDateLocale()
+  const tExerciseType = useTranslateExerciseType()
+
+  function formatDate(dateStr: string): string {
+    const date = new Date(dateStr)
+    return date.toLocaleDateString(dateLocale(), {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    })
+  }
+
+  function formatTime(dateStr: string): string {
+    const date = new Date(dateStr)
+    return date.toLocaleTimeString(dateLocale(), {
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }
+
+  function getDateKey(dateStr: string): string {
+    const date = new Date(dateStr)
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+  }
+
+  function getRelativeDayLabel(dateStr: string): string {
+    const date = new Date(dateStr)
+    const today = new Date()
+    const yesterday = new Date()
+    yesterday.setDate(yesterday.getDate() - 1)
+
+    const dk = getDateKey(dateStr)
+    const todayKey = getDateKey(today.toISOString())
+    const yesterdayKey = getDateKey(yesterday.toISOString())
+
+    if (dk === todayKey) return t('exerciseLog.today') ?? 'Today'
+    if (dk === yesterdayKey) return t('exerciseLog.yesterday') ?? 'Yesterday'
+
+    const dayName = date.toLocaleDateString(dateLocale(), { weekday: 'long' })
+    return `${dayName}, ${formatDate(dateStr)}`
+  }
 
   const groupedLogs = createMemo((): DayGroup[] => {
     const logs = data()?.exercise_logs ?? []
@@ -94,20 +98,19 @@ export default function ExerciseLogs() {
       groups.get(key)!.logs.push(log)
     }
 
-    // Sort groups by date descending (newest first)
     return Array.from(groups.values()).sort((a, b) => b.date.localeCompare(a.date))
   })
 
   const totalLogs = () => data()?.count ?? 0
 
   const handleDelete = async (id: number, exerciseName: string) => {
-    if (!confirm(`Delete log entry for "${exerciseName}"?`)) return
+    if (!confirm(t('exerciseLog.deleteConfirm', { name: exerciseName }) ?? '')) return
 
     try {
       await apiDelete(`/exercise-logs/${id}`)
       refetch()
     } catch (err: any) {
-      alert(`Failed to delete log: ${err.message}`)
+      alert(t('exerciseLog.deleteFailed', { error: err.message }) ?? '')
     }
   }
 
@@ -117,14 +120,14 @@ export default function ExerciseLogs() {
       <Show when={data()}>
         <div class="flex gap-3 mb-6 flex-wrap">
           <span class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-full text-sm font-medium shadow-sm">
-            Exercise Log
+            {t('exerciseLog.title')}
             <span class="bg-accent-500 text-white px-2 py-0.5 rounded-full text-xs font-semibold">
               {totalLogs()}
             </span>
           </span>
           <Show when={groupedLogs().length > 0}>
             <span class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-full text-sm font-medium shadow-sm">
-              Days
+              {t('exerciseLog.days')}
               <span class="bg-primary-500 text-white px-2 py-0.5 rounded-full text-xs font-semibold">
                 {groupedLogs().length}
               </span>
@@ -137,13 +140,13 @@ export default function ExerciseLogs() {
       <Show when={!auth.user}>
         <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-6 text-center">
           <div class="text-4xl mb-3">🔒</div>
-          <h3 class="text-lg font-semibold text-slate-900 mb-2">Authentication Required</h3>
-          <p class="text-slate-600 mb-4">Please sign in to view your exercise log.</p>
+          <h3 class="text-lg font-semibold text-slate-900 mb-2">{t('auth.authRequired')}</h3>
+          <p class="text-slate-600 mb-4">{t('auth.pleaseSignInExerciseLog')}</p>
           <A
             href="/login"
             class="inline-block px-6 py-2 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600"
           >
-            Sign In
+            {t('auth.signIn')}
           </A>
         </div>
       </Show>
@@ -153,15 +156,15 @@ export default function ExerciseLogs() {
         <div class="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
           {/* Header */}
           <div class="p-4 border-b border-slate-200 bg-gradient-to-r from-accent-50 to-primary-50">
-            <h2 class="text-lg font-bold text-slate-900">Exercise Log</h2>
-            <p class="text-sm text-slate-600 mt-0.5">Your completed exercises, grouped by day</p>
+            <h2 class="text-lg font-bold text-slate-900">{t('exerciseLog.title')}</h2>
+            <p class="text-sm text-slate-600 mt-0.5">{t('exerciseLog.subtitle')}</p>
           </div>
 
           {/* Loading State */}
           <Show when={data.loading}>
             <div class="flex flex-col items-center justify-center py-16 text-slate-500">
               <div class="w-8 h-8 border-4 border-accent-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-              <span>Loading exercise log...</span>
+              <span>{t('exerciseLog.loading')}</span>
             </div>
           </Show>
 
@@ -169,14 +172,14 @@ export default function ExerciseLogs() {
           <Show when={data.error}>
             <div class="py-12 px-4 text-center text-red-600">
               <div class="text-4xl mb-2">⚠️</div>
-              <p class="font-medium">Failed to load exercise log</p>
+              <p class="font-medium">{t('exerciseLog.failedToLoad')}</p>
               <p class="text-sm opacity-80 mt-1">{data.error?.message}</p>
               <button
                 class="mt-4 px-6 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium
                        hover:bg-primary-600 active:scale-[0.98] transition-all"
                 onClick={() => refetch()}
               >
-                Try Again
+                {t('common.tryAgain')}
               </button>
             </div>
           </Show>
@@ -187,13 +190,13 @@ export default function ExerciseLogs() {
             <Show when={totalLogs() === 0}>
               <div class="py-16 px-4 text-center text-slate-500">
                 <div class="text-4xl mb-2 opacity-50">📝</div>
-                <p class="font-medium text-lg mb-1">No exercises logged yet</p>
-                <p class="text-sm">Log exercises from your workouts to track your progress!</p>
+                <p class="font-medium text-lg mb-1">{t('exerciseLog.noLogs')}</p>
+                <p class="text-sm">{t('exerciseLog.noLogsHint')}</p>
                 <A
                   href="/workouts"
                   class="inline-block mt-4 px-6 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600"
                 >
-                  Go to Workouts
+                  {t('exerciseLog.goToWorkouts')}
                 </A>
               </div>
             </Show>
@@ -211,10 +214,10 @@ export default function ExerciseLogs() {
                   </colgroup>
                   <thead>
                     <tr class="border-b border-slate-100">
-                      <th class="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-6 py-2">Time</th>
-                      <th class="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-6 py-2">Exercise</th>
-                      <th class="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-6 py-2">Details</th>
-                      <th class="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-6 py-2">Notes</th>
+                      <th class="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-6 py-2">{t('exerciseLog.time')}</th>
+                      <th class="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-6 py-2">{t('exerciseLog.exercise')}</th>
+                      <th class="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-6 py-2">{t('exerciseLog.details')}</th>
+                      <th class="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-6 py-2">{t('common.notes')}</th>
                       <th class="px-6 py-2"></th>
                     </tr>
                   </thead>
@@ -231,7 +234,7 @@ export default function ExerciseLogs() {
                                   <span class="font-semibold text-slate-800">{group.label}</span>
                                 </div>
                                 <span class="text-xs text-slate-500 bg-white px-2.5 py-1 rounded-full border border-slate-200">
-                                  {group.logs.length} {group.logs.length === 1 ? 'exercise' : 'exercises'}
+                                  {plural(group.logs.length, t('common.exercise_one') ?? 'exercise', t('common.exercise_other') ?? 'exercises')}
                                 </span>
                               </div>
                             </td>
@@ -245,18 +248,18 @@ export default function ExerciseLogs() {
                                 </td>
                                 <td class="px-6 py-3">
                                   <div class="font-medium text-slate-900 text-sm truncate">{log.exercise_name}</div>
-                                  <div class="text-xs text-slate-500 truncate">{log.exercise_type}</div>
+                                  <div class="text-xs text-slate-500 truncate">{tExerciseType(log.exercise_type)}</div>
                                 </td>
                                 <td class="px-6 py-3">
                                   <div class="flex items-center gap-1.5 flex-wrap">
                                     <Show when={log.sets}>
                                       <span class="px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-medium whitespace-nowrap">
-                                        {log.sets} sets
+                                        {t('common.sets', { count: String(log.sets) })}
                                       </span>
                                     </Show>
                                     <Show when={log.reps}>
                                       <span class="px-1.5 py-0.5 bg-green-50 text-green-700 rounded text-xs font-medium whitespace-nowrap">
-                                        {log.reps} reps
+                                        {t('common.reps', { count: String(log.reps) })}
                                       </span>
                                     </Show>
                                     <Show when={log.time_seconds}>
@@ -266,12 +269,12 @@ export default function ExerciseLogs() {
                                     </Show>
                                     <Show when={log.weight}>
                                       <span class="px-1.5 py-0.5 bg-orange-50 text-orange-700 rounded text-xs font-medium whitespace-nowrap">
-                                        {log.weight}kg
+                                        {t('common.weight', { count: String(log.weight) })}
                                       </span>
                                     </Show>
                                     <Show when={log.rest_seconds}>
                                       <span class="px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded text-xs font-medium whitespace-nowrap">
-                                        ↻ {log.rest_seconds}s
+                                        {t('common.rest', { count: String(log.rest_seconds) })}
                                       </span>
                                     </Show>
                                   </div>
@@ -287,7 +290,7 @@ export default function ExerciseLogs() {
                                   <button
                                     onClick={() => handleDelete(log.id, log.exercise_name)}
                                     class="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-all"
-                                    title="Delete log entry"
+                                    title={t('exerciseLog.deleteEntry') ?? ''}
                                   >
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -317,7 +320,7 @@ export default function ExerciseLogs() {
                             <span class="font-semibold text-slate-800">{group.label}</span>
                           </div>
                           <span class="text-xs text-slate-500 bg-white px-2.5 py-1 rounded-full border border-slate-200">
-                            {group.logs.length} {group.logs.length === 1 ? 'exercise' : 'exercises'}
+                            {plural(group.logs.length, t('common.exercise_one') ?? 'exercise', t('common.exercise_other') ?? 'exercises')}
                           </span>
                         </div>
                       </div>
@@ -329,7 +332,7 @@ export default function ExerciseLogs() {
                                 <div class="flex-1 min-w-0">
                                   <div class="font-medium text-slate-900 text-sm">{log.exercise_name}</div>
                                   <div class="flex items-center gap-2 text-xs text-slate-500">
-                                    <span>{log.exercise_type}</span>
+                                    <span>{tExerciseType(log.exercise_type)}</span>
                                     <span>·</span>
                                     <span>{formatTime(log.logged_when)}</span>
                                   </div>
@@ -337,7 +340,7 @@ export default function ExerciseLogs() {
                                 <button
                                   onClick={() => handleDelete(log.id, log.exercise_name)}
                                   class="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-all flex-shrink-0"
-                                  title="Delete log entry"
+                                  title={t('exerciseLog.deleteEntry') ?? ''}
                                 >
                                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -347,12 +350,12 @@ export default function ExerciseLogs() {
                               <div class="flex flex-wrap gap-1.5">
                                 <Show when={log.sets}>
                                   <span class="px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-medium">
-                                    {log.sets} sets
+                                    {t('common.sets', { count: String(log.sets) })}
                                   </span>
                                 </Show>
                                 <Show when={log.reps}>
                                   <span class="px-1.5 py-0.5 bg-green-50 text-green-700 rounded text-xs font-medium">
-                                    {log.reps} reps
+                                    {t('common.reps', { count: String(log.reps) })}
                                   </span>
                                 </Show>
                                 <Show when={log.time_seconds}>
@@ -362,12 +365,12 @@ export default function ExerciseLogs() {
                                 </Show>
                                 <Show when={log.weight}>
                                   <span class="px-1.5 py-0.5 bg-orange-50 text-orange-700 rounded text-xs font-medium">
-                                    {log.weight}kg
+                                    {t('common.weight', { count: String(log.weight) })}
                                   </span>
                                 </Show>
                                 <Show when={log.rest_seconds}>
                                   <span class="px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded text-xs font-medium">
-                                    ↻ {log.rest_seconds}s
+                                    {t('common.rest', { count: String(log.rest_seconds) })}
                                   </span>
                                 </Show>
                               </div>

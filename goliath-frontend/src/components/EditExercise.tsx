@@ -1,6 +1,7 @@
 import { createSignal, createResource, createEffect, For, Show } from 'solid-js'
 import { useNavigate, useParams } from '@solidjs/router'
 import { apiGet, apiPut } from '../api'
+import { useI18n, useTranslateMuscleGroup, useTranslateExerciseType } from '../i18n'
 
 interface Muscle {
   id: number
@@ -43,6 +44,9 @@ export default function EditExercise() {
   const params = useParams()
   const navigate = useNavigate()
   const exerciseId = parseInt(params.id || '0')
+  const { t } = useI18n()
+  const tMuscleGroup = useTranslateMuscleGroup()
+  const tExerciseType = useTranslateExerciseType()
   
   const [exercise] = createResource(() => exerciseId, fetchExercise)
   const [muscles] = createResource(fetchMuscles)
@@ -113,11 +117,11 @@ export default function EditExercise() {
 
     // Validation
     if (!name().trim()) {
-      setError('Exercise name is required')
+      setError(t('editExercise.nameRequired') ?? 'Exercise name is required')
       return
     }
     if (!selectedType()) {
-      setError('Exercise type is required')
+      setError(t('editExercise.typeRequired') ?? 'Exercise type is required')
       return
     }
 
@@ -144,14 +148,14 @@ export default function EditExercise() {
   return (
     <div class="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
       <div class="p-6 border-b border-slate-200 bg-gradient-to-r from-primary-50 to-accent-50">
-        <h2 class="text-xl font-bold text-slate-900">Edit Exercise</h2>
-        <p class="text-sm text-slate-600 mt-1">Modify exercise details and muscle assignments</p>
+        <h2 class="text-xl font-bold text-slate-900">{t('editExercise.title')}</h2>
+        <p class="text-sm text-slate-600 mt-1">{t('editExercise.subtitle')}</p>
       </div>
 
       <Show when={exercise.loading || muscles.loading || types.loading}>
         <div class="flex flex-col items-center justify-center py-16 text-slate-500">
           <div class="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-          <span>Loading exercise data...</span>
+          <span>{t('editExercise.loading')}</span>
         </div>
       </Show>
 
@@ -160,7 +164,7 @@ export default function EditExercise() {
           <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start gap-3">
             <span class="text-lg">⚠️</span>
             <div class="flex-1">
-              <p class="font-medium">Error Loading Exercise</p>
+              <p class="font-medium">{t('editExercise.errorLoading')}</p>
               <p class="text-sm mt-0.5">{exercise.error?.message}</p>
             </div>
           </div>
@@ -168,7 +172,7 @@ export default function EditExercise() {
             onClick={() => navigate('/exercises')}
             class="mt-4 px-6 py-2 bg-slate-100 text-slate-700 rounded-lg font-medium hover:bg-slate-200"
           >
-            Back to Exercises
+            {t('editExercise.backToExercises')}
           </button>
         </div>
       </Show>
@@ -180,7 +184,7 @@ export default function EditExercise() {
             <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start gap-3">
               <span class="text-lg">⚠️</span>
               <div class="flex-1">
-                <p class="font-medium">Error</p>
+                <p class="font-medium">{t('common.error')}</p>
                 <p class="text-sm mt-0.5">{error()}</p>
               </div>
               <button
@@ -196,13 +200,13 @@ export default function EditExercise() {
           {/* Exercise Name */}
           <div>
             <label class="block text-sm font-semibold text-slate-700 mb-2">
-              Exercise Name *
+              {t('addExercise.exerciseName')}
             </label>
             <input
               type="text"
               value={name()}
               onInput={(e) => setName(e.currentTarget.value)}
-              placeholder="e.g., Bench Press"
+              placeholder={t('addExercise.exerciseNamePlaceholder') ?? ''}
               class="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-white 
                      focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
                      placeholder:text-slate-400"
@@ -213,7 +217,7 @@ export default function EditExercise() {
           {/* Exercise Type */}
           <div>
             <label class="block text-sm font-semibold text-slate-700 mb-2">
-              Exercise Type *
+              {t('addExercise.exerciseType')}
             </label>
             <select
               value={selectedType()}
@@ -222,9 +226,9 @@ export default function EditExercise() {
                      focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               required
             >
-              <option value="">Select exercise type...</option>
+              <option value="">{t('addExercise.selectType')}</option>
               <For each={types()}>
-                {(type) => <option value={type}>{type}</option>}
+                {(type) => <option value={type}>{tExerciseType(type)}</option>}
               </For>
             </select>
           </div>
@@ -232,14 +236,14 @@ export default function EditExercise() {
           {/* Muscle Selection */}
           <div>
             <label class="block text-sm font-semibold text-slate-700 mb-2">
-              Targeted Muscles *
+              {t('addExercise.targetedMuscles')}
             </label>
             
             {/* Selected Muscles */}
             <div class="space-y-2 mb-4">
               <Show when={selectedMuscles().length === 0}>
                 <div class="text-sm text-slate-400 italic py-3 text-center bg-slate-50 rounded-lg border border-dashed border-slate-200">
-                  No muscles selected. Search and add muscles below.
+                  {t('addExercise.noMusclesSelected')}
                 </div>
               </Show>
               <For each={selectedMuscles()}>
@@ -247,7 +251,7 @@ export default function EditExercise() {
                   <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
                     <div class="flex-1">
                       <div class="font-medium text-slate-900 text-sm">{muscle.name}</div>
-                      <div class="text-xs text-slate-500">{muscle.muscle_group_name}</div>
+                      <div class="text-xs text-slate-500">{tMuscleGroup(muscle.muscle_group_name)}</div>
                     </div>
                     
                     {/* Star Rating */}
@@ -290,7 +294,7 @@ export default function EditExercise() {
                   type="text"
                   value={searchMuscle()}
                   onInput={(e) => setSearchMuscle(e.currentTarget.value)}
-                  placeholder="Search muscles to add..."
+                  placeholder={t('addExercise.searchMuscles') ?? ''}
                   class="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-white 
                          focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
                          placeholder:text-slate-400"
@@ -308,10 +312,10 @@ export default function EditExercise() {
                       >
                         <div>
                           <div class="text-sm font-medium text-slate-900">{muscle.name}</div>
-                          <div class="text-xs text-slate-500">{muscle.muscle_group_name}</div>
+                          <div class="text-xs text-slate-500">{tMuscleGroup(muscle.muscle_group_name)}</div>
                         </div>
                         <span class="text-primary-500 opacity-0 group-hover:opacity-100 transition-opacity">
-                          + Add
+                          {t('common.add')}
                         </span>
                       </button>
                     )}
@@ -321,7 +325,7 @@ export default function EditExercise() {
               
               <Show when={searchMuscle() && filteredMuscles().length === 0}>
                 <div class="text-sm text-slate-400 italic py-2 text-center">
-                  No muscles found
+                  {t('addExercise.noMusclesFound')}
                 </div>
               </Show>
             </div>
@@ -340,7 +344,7 @@ export default function EditExercise() {
               <Show when={isSubmitting()}>
                 <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
               </Show>
-              {isSubmitting() ? 'Updating...' : 'Update Exercise'}
+              {isSubmitting() ? t('editExercise.updating') : t('editExercise.updateExercise')}
             </button>
             <button
               type="button"
@@ -350,7 +354,7 @@ export default function EditExercise() {
                      hover:bg-slate-200 active:scale-[0.98] transition-all
                      disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
           </div>
         </form>
@@ -358,4 +362,3 @@ export default function EditExercise() {
     </div>
   )
 }
-

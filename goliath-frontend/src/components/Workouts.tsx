@@ -2,6 +2,7 @@ import { createSignal, createResource, For, Show, createMemo } from 'solid-js'
 import { A } from '@solidjs/router'
 import { apiGet, apiDelete } from '../api'
 import { useAuth } from '../auth'
+import { useI18n, plural, useTranslateExerciseType } from '../i18n'
 
 interface WorkoutExercise {
   id: number
@@ -53,6 +54,8 @@ export default function Workouts() {
   const [data, { refetch }] = createResource(fetchWorkouts)
   const [search, setSearch] = createSignal('')
   const [deletingId, setDeletingId] = createSignal<number | null>(null)
+  const { t } = useI18n()
+  const tExerciseType = useTranslateExerciseType()
 
   const filteredWorkouts = createMemo(() => {
     const workouts = data()?.workouts ?? []
@@ -62,7 +65,7 @@ export default function Workouts() {
   })
 
   const handleDelete = async (id: number, name: string) => {
-    if (!confirm(`Are you sure you want to delete workout "${name}"?`)) {
+    if (!confirm(t('workouts.deleteConfirm', { name }) ?? '')) {
       return
     }
 
@@ -71,7 +74,7 @@ export default function Workouts() {
       await apiDelete(`/workouts/${id}`)
       refetch()
     } catch (err: any) {
-      alert(`Failed to delete workout: ${err.message}`)
+      alert(t('workouts.deleteFailed', { error: err.message }) ?? '')
     } finally {
       setDeletingId(null)
     }
@@ -83,7 +86,7 @@ export default function Workouts() {
       <Show when={data()}>
         <div class="flex gap-3 mb-6 flex-wrap">
           <span class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-full text-sm font-medium shadow-sm">
-            My Workouts
+            {t('workouts.title')}
             <span class="bg-primary-500 text-white px-2 py-0.5 rounded-full text-xs font-semibold">
               {data()!.count}
             </span>
@@ -95,13 +98,13 @@ export default function Workouts() {
       <Show when={!auth.user}>
         <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-6 text-center">
           <div class="text-4xl mb-3">🔒</div>
-          <h3 class="text-lg font-semibold text-slate-900 mb-2">Authentication Required</h3>
-          <p class="text-slate-600 mb-4">Please sign in to view and manage your workouts.</p>
+          <h3 class="text-lg font-semibold text-slate-900 mb-2">{t('auth.authRequired')}</h3>
+          <p class="text-slate-600 mb-4">{t('auth.pleaseSignInWorkouts')}</p>
           <A
             href="/login"
             class="inline-block px-6 py-2 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600"
           >
-            Sign In
+            {t('auth.signIn')}
           </A>
         </div>
       </Show>
@@ -120,7 +123,7 @@ export default function Workouts() {
                 class="w-full pl-11 pr-4 py-3 border border-slate-200 rounded-lg text-sm bg-white 
                        focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
                        placeholder:text-slate-400 transition-shadow"
-                placeholder="Search workouts..."
+                placeholder={t('workouts.searchPlaceholder') ?? ''}
                 value={search()}
                 onInput={(e) => setSearch(e.currentTarget.value)}
               />
@@ -131,7 +134,7 @@ export default function Workouts() {
           <Show when={data.loading}>
             <div class="flex flex-col items-center justify-center py-16 text-slate-500">
               <div class="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-              <span>Loading workouts...</span>
+              <span>{t('workouts.loading')}</span>
             </div>
           </Show>
 
@@ -139,14 +142,14 @@ export default function Workouts() {
           <Show when={data.error}>
             <div class="py-12 px-4 text-center text-red-600">
               <div class="text-4xl mb-2">⚠️</div>
-              <p class="font-medium">Failed to load workouts</p>
+              <p class="font-medium">{t('workouts.failedToLoad')}</p>
               <p class="text-sm opacity-80 mt-1">{data.error?.message}</p>
               <button
                 class="mt-4 px-6 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium
                        hover:bg-primary-600 active:scale-[0.98] transition-all"
                 onClick={() => refetch()}
               >
-                Try Again
+                {t('common.tryAgain')}
               </button>
             </div>
           </Show>
@@ -157,15 +160,15 @@ export default function Workouts() {
             <Show when={filteredWorkouts().length === 0 && !search()}>
               <div class="py-16 px-4 text-center text-slate-500">
                 <div class="text-4xl mb-2 opacity-50">💪</div>
-                <p class="font-medium text-lg mb-1">No workouts yet</p>
-                <p class="text-sm">Create your first workout to get started!</p>
+                <p class="font-medium text-lg mb-1">{t('workouts.noWorkouts')}</p>
+                <p class="text-sm">{t('workouts.noWorkoutsHint')}</p>
               </div>
             </Show>
 
             <Show when={filteredWorkouts().length === 0 && search()}>
               <div class="py-16 px-4 text-center text-slate-500">
                 <div class="text-4xl mb-2 opacity-50">🔍</div>
-                <p>No workouts found matching "{search()}"</p>
+                <p>{t('workouts.noResults', { query: search() })}</p>
               </div>
             </Show>
 
@@ -189,7 +192,7 @@ export default function Workouts() {
                           disabled={deletingId() === workout.id}
                           class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-all
                                  disabled:opacity-50 disabled:cursor-not-allowed"
-                          title="Delete workout"
+                          title={t('workouts.deleteWorkout') ?? ''}
                         >
                           <Show when={deletingId() === workout.id}>
                             <div class="w-5 h-5 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
@@ -212,7 +215,7 @@ export default function Workouts() {
                                   <div class="flex items-center gap-2 min-w-0">
                                     <div class="font-medium text-slate-900 text-sm truncate">{ex.exercise_name}</div>
                                     <div class="text-xs text-slate-400 flex-shrink-0">·</div>
-                                    <div class="text-xs text-slate-500 flex-shrink-0">{ex.exercise_type}</div>
+                                    <div class="text-xs text-slate-500 flex-shrink-0">{tExerciseType(ex.exercise_type)}</div>
                                   </div>
                                   <div class="flex items-center gap-1.5 flex-wrap">
                                     <Show when={ex.sets}>
@@ -222,7 +225,7 @@ export default function Workouts() {
                                     </Show>
                                     <Show when={ex.reps}>
                                       <span class="px-1.5 py-0.5 bg-green-50 text-green-700 rounded text-xs font-medium whitespace-nowrap">
-                                        {ex.reps} reps
+                                        {t('common.reps', { count: String(ex.reps) })}
                                       </span>
                                     </Show>
                                     <Show when={ex.time_seconds}>
@@ -232,12 +235,12 @@ export default function Workouts() {
                                     </Show>
                                     <Show when={ex.weight}>
                                       <span class="px-1.5 py-0.5 bg-orange-50 text-orange-700 rounded text-xs font-medium whitespace-nowrap">
-                                        {ex.weight}kg
+                                        {t('common.weight', { count: String(ex.weight) })}
                                       </span>
                                     </Show>
                                     <Show when={ex.rest_seconds}>
                                       <span class="px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded text-xs font-medium whitespace-nowrap">
-                                        ↻ {ex.rest_seconds}s
+                                        {t('common.rest', { count: String(ex.rest_seconds) })}
                                       </span>
                                     </Show>
                                   </div>
@@ -254,7 +257,7 @@ export default function Workouts() {
                       </Show>
                       
                       <Show when={(workout.exercises || []).length === 0}>
-                        <div class="text-sm text-slate-400 italic">No exercises added yet</div>
+                        <div class="text-sm text-slate-400 italic">{t('workouts.noExercises')}</div>
                       </Show>
                     </div>
                   )}
@@ -278,7 +281,7 @@ export default function Workouts() {
                           disabled={deletingId() === workout.id}
                           class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-all flex-shrink-0
                                  disabled:opacity-50 disabled:cursor-not-allowed"
-                          title="Delete workout"
+                          title={t('workouts.deleteWorkout') ?? ''}
                         >
                           <Show when={deletingId() === workout.id}>
                             <div class="w-5 h-5 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
@@ -299,7 +302,7 @@ export default function Workouts() {
                               <div class="p-2 bg-slate-50 border border-slate-200 rounded-lg">
                                 <div class="flex items-center gap-2 mb-1.5">
                                   <div class="font-medium text-slate-900 text-sm flex-1 truncate">{ex.exercise_name}</div>
-                                  <div class="text-xs text-slate-500 flex-shrink-0">{ex.exercise_type}</div>
+                                  <div class="text-xs text-slate-500 flex-shrink-0">{tExerciseType(ex.exercise_type)}</div>
                                 </div>
                                 <div class="flex flex-wrap gap-1.5">
                                   <Show when={ex.sets}>
@@ -309,7 +312,7 @@ export default function Workouts() {
                                   </Show>
                                   <Show when={ex.reps}>
                                     <span class="px-1.5 py-0.5 bg-green-50 text-green-700 rounded text-xs font-medium">
-                                      {ex.reps} reps
+                                      {t('common.reps', { count: String(ex.reps) })}
                                     </span>
                                   </Show>
                                   <Show when={ex.time_seconds}>
@@ -319,12 +322,12 @@ export default function Workouts() {
                                   </Show>
                                   <Show when={ex.weight}>
                                     <span class="px-1.5 py-0.5 bg-orange-50 text-orange-700 rounded text-xs font-medium">
-                                      {ex.weight}kg
+                                      {t('common.weight', { count: String(ex.weight) })}
                                     </span>
                                   </Show>
                                   <Show when={ex.rest_seconds}>
                                     <span class="px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded text-xs font-medium">
-                                      ↻ {ex.rest_seconds}s
+                                      {t('common.rest', { count: String(ex.rest_seconds) })}
                                     </span>
                                   </Show>
                                 </div>
@@ -338,7 +341,7 @@ export default function Workouts() {
                       </Show>
                       
                       <Show when={(workout.exercises || []).length === 0}>
-                        <div class="text-sm text-slate-400 italic">No exercises added yet</div>
+                        <div class="text-sm text-slate-400 italic">{t('workouts.noExercises')}</div>
                       </Show>
                     </div>
                   )}
@@ -356,7 +359,7 @@ export default function Workouts() {
           class="fixed bottom-6 right-6 w-14 h-14 bg-accent-500 text-white rounded-full shadow-lg
                  flex items-center justify-center text-2xl hover:bg-accent-600 hover:scale-110
                  active:scale-95 transition-all z-50"
-          title="Add new workout"
+          title={t('workouts.addNew') ?? ''}
         >
           ➕
         </A>

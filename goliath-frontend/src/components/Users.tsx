@@ -1,5 +1,6 @@
 import { createSignal, createResource, For, Show, createMemo } from 'solid-js'
 import { apiGet } from '../api'
+import { useI18n, useDateLocale } from '../i18n'
 
 interface User {
   id: number
@@ -21,18 +22,20 @@ async function fetchUsers(): Promise<UsersResponse> {
   return apiGet<UsersResponse>('/users')
 }
 
-function formatDate(dateString: string): string {
-  const date = new Date(dateString)
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  })
-}
-
 export default function Users() {
   const [data, { refetch }] = createResource(fetchUsers)
   const [search, setSearch] = createSignal('')
+  const { t } = useI18n()
+  const dateLocale = useDateLocale()
+
+  function formatDate(dateString: string): string {
+    const date = new Date(dateString)
+    return date.toLocaleDateString(dateLocale(), {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    })
+  }
 
   const filteredUsers = createMemo(() => {
     const users = data()?.users ?? []
@@ -62,19 +65,19 @@ export default function Users() {
       <Show when={data()}>
         <div class="flex gap-3 mb-6 flex-wrap">
           <span class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-full text-sm font-medium shadow-sm">
-            Total Users
+            {t('users.totalUsers')}
             <span class="bg-primary-500 text-white px-2 py-0.5 rounded-full text-xs font-semibold">
               {data()!.count}
             </span>
           </span>
           <span class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-full text-sm font-medium shadow-sm">
-            Admins
+            {t('users.admins')}
             <span class="bg-red-500 text-white px-2 py-0.5 rounded-full text-xs font-semibold">
               {adminCount()}
             </span>
           </span>
           <span class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-full text-sm font-medium shadow-sm">
-            Users
+            {t('users.users')}
             <span class="bg-blue-500 text-white px-2 py-0.5 rounded-full text-xs font-semibold">
               {userCount()}
             </span>
@@ -95,7 +98,7 @@ export default function Users() {
               class="w-full pl-11 pr-4 py-3 border border-slate-200 rounded-lg text-sm bg-white 
                      focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
                      placeholder:text-slate-400 transition-shadow"
-              placeholder="Search users by email, role, or ID..."
+              placeholder={t('users.searchPlaceholder') ?? ''}
               value={search()}
               onInput={(e) => setSearch(e.currentTarget.value)}
             />
@@ -106,7 +109,7 @@ export default function Users() {
         <Show when={data.loading}>
           <div class="flex flex-col items-center justify-center py-16 text-slate-500">
             <div class="spinner mb-4"></div>
-            <span>Loading users...</span>
+            <span>{t('users.loading')}</span>
           </div>
         </Show>
 
@@ -114,14 +117,14 @@ export default function Users() {
         <Show when={data.error}>
           <div class="py-12 px-4 text-center text-red-600">
             <div class="text-4xl mb-2">⚠️</div>
-            <p class="font-medium">Failed to load users</p>
+            <p class="font-medium">{t('users.failedToLoad')}</p>
             <p class="text-sm opacity-80 mt-1">{data.error?.message}</p>
             <button
               class="mt-4 px-6 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium
                      hover:bg-primary-600 active:scale-[0.98] transition-all"
               onClick={() => refetch()}
             >
-              Try Again
+              {t('common.tryAgain')}
             </button>
           </div>
         </Show>
@@ -132,7 +135,7 @@ export default function Users() {
           <Show when={filteredUsers().length === 0}>
             <div class="py-16 px-4 text-center text-slate-500">
               <div class="text-4xl mb-2 opacity-50">🔍</div>
-              <p>No users found matching "{search()}"</p>
+              <p>{t('users.noResults', { query: search() })}</p>
             </div>
           </Show>
 
@@ -146,16 +149,16 @@ export default function Users() {
                       #
                     </th>
                     <th class="px-4 py-3 text-left font-semibold text-slate-700 border-b-2 border-slate-200 text-xs uppercase tracking-wide">
-                      Email
+                      {t('users.email')}
                     </th>
                     <th class="px-4 py-3 text-left font-semibold text-slate-700 border-b-2 border-slate-200 text-xs uppercase tracking-wide">
-                      Role
+                      {t('users.role')}
                     </th>
                     <th class="px-4 py-3 text-left font-semibold text-slate-700 border-b-2 border-slate-200 text-xs uppercase tracking-wide">
-                      Created
+                      {t('users.created')}
                     </th>
                     <th class="px-4 py-3 text-left font-semibold text-slate-700 border-b-2 border-slate-200 text-xs uppercase tracking-wide">
-                      Modified
+                      {t('users.modified')}
                     </th>
                   </tr>
                 </thead>
@@ -217,10 +220,10 @@ export default function Users() {
                     </div>
                     <div class="space-y-1 text-xs text-slate-500">
                       <div>
-                        <span class="text-slate-400">Created:</span> {formatDate(user.created_when)}
+                        <span class="text-slate-400">{t('users.created')}:</span> {formatDate(user.created_when)}
                       </div>
                       <div>
-                        <span class="text-slate-400">Modified:</span> {formatDate(user.modified_when)}
+                        <span class="text-slate-400">{t('users.modified')}:</span> {formatDate(user.modified_when)}
                       </div>
                     </div>
                   </div>
@@ -233,4 +236,3 @@ export default function Users() {
     </>
   )
 }
-

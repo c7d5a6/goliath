@@ -1,6 +1,7 @@
 import { createSignal, createResource, For, Show, createMemo } from 'solid-js'
 import { A } from '@solidjs/router'
 import { apiGet } from '../api'
+import { useI18n, useTranslateArea, useTranslateExerciseType } from '../i18n'
 
 interface ExerciseArea {
   exercise_area_id: number
@@ -33,6 +34,9 @@ const typeColors: Record<string, { bg: string; text: string }> = {
 export default function Exercises() {
   const [data, { refetch }] = createResource(fetchExercises)
   const [search, setSearch] = createSignal('')
+  const { t } = useI18n()
+  const tArea = useTranslateArea()
+  const tExerciseType = useTranslateExerciseType()
 
   const filteredExercises = createMemo(() => {
     const exercises = data()?.exercises ?? []
@@ -61,7 +65,7 @@ export default function Exercises() {
       <Show when={data()}>
         <div class="flex gap-3 mb-6 flex-wrap">
           <span class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-full text-sm font-medium shadow-sm">
-            Exercises
+            {t('exercises.title')}
             <span class="bg-primary-500 text-white px-2 py-0.5 rounded-full text-xs font-semibold">
               {data()!.count}
             </span>
@@ -69,7 +73,7 @@ export default function Exercises() {
           <For each={Array.from(exercisesByType().entries())}>
             {([type, count]) => (
               <span class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-full text-sm font-medium shadow-sm">
-                {type}
+                {tExerciseType(type)}
                 <span class="bg-accent-500 text-white px-2 py-0.5 rounded-full text-xs font-semibold">
                   {count}
                 </span>
@@ -92,7 +96,7 @@ export default function Exercises() {
               class="w-full pl-11 pr-4 py-3 border border-slate-200 rounded-lg text-sm bg-white 
                      focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
                      placeholder:text-slate-400 transition-shadow"
-              placeholder="Search exercises, types, or exercise areas..."
+              placeholder={t('exercises.searchPlaceholder') ?? ''}
               value={search()}
               onInput={(e) => setSearch(e.currentTarget.value)}
             />
@@ -103,7 +107,7 @@ export default function Exercises() {
         <Show when={data.loading}>
           <div class="flex flex-col items-center justify-center py-16 text-slate-500">
             <div class="spinner mb-4"></div>
-            <span>Loading exercises...</span>
+            <span>{t('exercises.loading')}</span>
           </div>
         </Show>
 
@@ -111,14 +115,14 @@ export default function Exercises() {
         <Show when={data.error}>
           <div class="py-12 px-4 text-center text-red-600">
             <div class="text-4xl mb-2">⚠️</div>
-            <p class="font-medium">Failed to load exercises</p>
+            <p class="font-medium">{t('exercises.failedToLoad')}</p>
             <p class="text-sm opacity-80 mt-1">{data.error?.message}</p>
             <button
               class="mt-4 px-6 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium
                      hover:bg-primary-600 active:scale-[0.98] transition-all"
               onClick={() => refetch()}
             >
-              Try Again
+              {t('common.tryAgain')}
             </button>
           </div>
         </Show>
@@ -129,7 +133,7 @@ export default function Exercises() {
           <Show when={filteredExercises().length === 0}>
             <div class="py-16 px-4 text-center text-slate-500">
               <div class="text-4xl mb-2 opacity-50">🔍</div>
-              <p>No exercises found matching "{search()}"</p>
+              <p>{t('exercises.noResults', { query: search() })}</p>
             </div>
           </Show>
 
@@ -143,13 +147,13 @@ export default function Exercises() {
                       #
                     </th>
                     <th class="px-4 py-3 text-left font-semibold text-slate-700 border-b-2 border-slate-200 text-xs uppercase tracking-wide">
-                      Exercise
+                      {t('exercises.exercise')}
                     </th>
                     <th class="px-4 py-3 text-left font-semibold text-slate-700 border-b-2 border-slate-200 text-xs uppercase tracking-wide">
-                      Type
+                      {t('exercises.type')}
                     </th>
                     <th class="px-4 py-3 text-left font-semibold text-slate-700 border-b-2 border-slate-200 text-xs uppercase tracking-wide">
-                      Exercise Areas
+                      {t('exercises.exerciseAreas')}
                     </th>
                   </tr>
                 </thead>
@@ -172,7 +176,7 @@ export default function Exercises() {
                           </td>
                           <td class="px-4 py-3">
                             <span class={`inline-block px-3 py-1 ${colors.bg} ${colors.text} rounded-full text-xs font-medium`}>
-                              {exercise.type}
+                              {tExerciseType(exercise.type)}
                             </span>
                           </td>
                           <td class="px-4 py-3">
@@ -180,7 +184,7 @@ export default function Exercises() {
                               <For each={exercise.exercise_areas || []}>
                                 {(area) => (
                                   <span class="inline-flex items-center gap-1.5 px-2 py-0.5 bg-accent-50 text-accent-600 rounded text-xs font-medium">
-                                    {area.exercise_area_name}
+                                    {tArea(area.exercise_area_name)}
                                     <span class="text-[10px] font-semibold bg-accent-100 px-1 rounded">
                                       {Math.round(area.percentage)}%
                                     </span>
@@ -220,18 +224,18 @@ export default function Exercises() {
                         </div>
                       </div>
                       <span class={`inline-block px-3 py-1 ${colors.bg} ${colors.text} rounded-full text-xs font-medium`}>
-                        {exercise.type}
+                        {tExerciseType(exercise.type)}
                       </span>
                       <Show when={(exercise.exercise_areas || []).length > 0}>
                         <div class="mt-3">
                           <div class="text-[10px] uppercase tracking-wide text-slate-400 mb-1.5">
-                            Exercise Areas
+                            {t('exercises.exerciseAreas')}
                           </div>
                           <div class="flex flex-wrap gap-1.5">
                             <For each={exercise.exercise_areas || []}>
                               {(area) => (
                                 <span class="inline-flex items-center gap-1.5 px-2 py-0.5 bg-accent-50 text-accent-600 rounded text-xs font-medium">
-                                  {area.exercise_area_name}
+                                  {tArea(area.exercise_area_name)}
                                   <span class="text-[10px] font-semibold bg-accent-100 px-1 rounded">
                                     {Math.round(area.percentage)}%
                                   </span>
@@ -256,12 +260,10 @@ export default function Exercises() {
         class="fixed bottom-6 right-6 w-14 h-14 bg-accent-500 text-white rounded-full shadow-lg
                flex items-center justify-center text-2xl hover:bg-accent-600 hover:scale-110
                active:scale-95 transition-all z-50"
-        title="Add new exercise"
+        title={t('exercises.addNew') ?? ''}
       >
         ➕
       </A>
     </div>
   )
 }
-
-

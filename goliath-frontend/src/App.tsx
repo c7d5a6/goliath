@@ -1,6 +1,7 @@
 import { Router, Route, A } from '@solidjs/router'
-import { Show, type Component, type ParentComponent } from 'solid-js'
+import { Show, For, type Component, type ParentComponent } from 'solid-js'
 import { AuthProvider, useAuth } from './auth'
+import { I18nProvider, useI18n, localeLabels, type SupportedLocale } from './i18n'
 import Muscles from './components/Muscles'
 import Exercises from './components/Exercises'
 import AddExercise from './components/AddExercise'
@@ -12,8 +13,27 @@ import ExerciseLogs from './components/ExerciseLogs'
 import Users from './components/Users'
 import Login from './components/Login'
 
+function LanguageSwitcher() {
+  const { locale, setLocale } = useI18n()
+  const locales = Object.keys(localeLabels) as SupportedLocale[]
+
+  return (
+    <select
+      value={locale()}
+      onChange={(e) => setLocale(e.currentTarget.value as SupportedLocale)}
+      class="px-2 py-1 border border-slate-200 rounded-lg text-sm bg-white
+             focus:outline-none focus:ring-2 focus:ring-primary-500 cursor-pointer"
+    >
+      <For each={locales}>
+        {(l) => <option value={l}>{localeLabels[l]}</option>}
+      </For>
+    </select>
+  )
+}
+
 const Layout: ParentComponent = (props) => {
   const auth = useAuth()
+  const { t } = useI18n()
 
   return (
     <div class="min-h-screen p-4 sm:p-6 lg:p-8">
@@ -23,41 +43,44 @@ const Layout: ParentComponent = (props) => {
           <div>
             <h1 class="text-2xl sm:text-3xl font-bold text-slate-900 flex items-center gap-3">
               <span class="text-2xl sm:text-3xl">💪</span>
-              Goliath Fitness
+              {t('app.title')}
             </h1>
             <p class="text-slate-500 mt-1">
-              Complete database of muscles and exercises
+              {t('app.subtitle')}
             </p>
           </div>
 
           {/* User Menu */}
-          <Show
-            when={auth.user}
-            fallback={
-              <A
-                href="/login"
-                class="px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium
-                       hover:bg-primary-600 active:scale-[0.98] transition-all shadow-md"
-              >
-                Sign In
-              </A>
-            }
-          >
-            <div class="flex items-center gap-3">
-              <div class="text-right text-sm">
-                <div class="font-medium text-slate-700">{auth.user?.email}</div>
-                <button
-                  onClick={() => auth.signOut()}
-                  class="text-slate-500 hover:text-slate-700 text-xs"
+          <div class="flex items-center gap-3">
+            <LanguageSwitcher />
+            <Show
+              when={auth.user}
+              fallback={
+                <A
+                  href="/login"
+                  class="px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium
+                         hover:bg-primary-600 active:scale-[0.98] transition-all shadow-md"
                 >
-                  Sign out
-                </button>
+                  {t('auth.signIn')}
+                </A>
+              }
+            >
+              <div class="flex items-center gap-3">
+                <div class="text-right text-sm">
+                  <div class="font-medium text-slate-700">{auth.user?.email}</div>
+                  <button
+                    onClick={() => auth.signOut()}
+                    class="text-slate-500 hover:text-slate-700 text-xs"
+                  >
+                    {t('auth.signOut')}
+                  </button>
+                </div>
+                <div class="w-10 h-10 bg-primary-500 rounded-full flex items-center justify-center text-white font-medium">
+                  {auth.user?.email?.charAt(0).toUpperCase()}
+                </div>
               </div>
-              <div class="w-10 h-10 bg-primary-500 rounded-full flex items-center justify-center text-white font-medium">
-                {auth.user?.email?.charAt(0).toUpperCase()}
-              </div>
-            </div>
-          </Show>
+            </Show>
+          </div>
         </div>
 
         {/* Navigation */}
@@ -69,7 +92,7 @@ const Layout: ParentComponent = (props) => {
             inactiveClass="bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
             end
           >
-            💪 Muscles
+            {t('nav.muscles')}
           </A>
           <A
             href="/exercises"
@@ -77,7 +100,7 @@ const Layout: ParentComponent = (props) => {
             activeClass="bg-primary-500 text-white shadow-md"
             inactiveClass="bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
           >
-            🏋️ Exercises
+            {t('nav.exercises')}
           </A>
           <A
             href="/workouts"
@@ -85,7 +108,7 @@ const Layout: ParentComponent = (props) => {
             activeClass="bg-primary-500 text-white shadow-md"
             inactiveClass="bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
           >
-            📋 Workouts
+            {t('nav.workouts')}
           </A>
           <Show when={auth.user}>
             <A
@@ -94,7 +117,7 @@ const Layout: ParentComponent = (props) => {
               activeClass="bg-primary-500 text-white shadow-md"
               inactiveClass="bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
             >
-              📝 Exercise Log
+              {t('nav.exerciseLog')}
             </A>
           </Show>
           <A
@@ -103,7 +126,7 @@ const Layout: ParentComponent = (props) => {
             activeClass="bg-primary-500 text-white shadow-md"
             inactiveClass="bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
           >
-            👥 Users
+            {t('nav.users')}
           </A>
         </nav>
       </header>
@@ -115,7 +138,7 @@ const Layout: ParentComponent = (props) => {
 
       {/* Footer */}
       <footer class="max-w-6xl mx-auto mt-6 text-center text-slate-400 text-sm">
-        Goliath Fitness Tracker · Built with SolidJS + Tailwind
+        {t('app.footer')}
       </footer>
     </div>
   )
@@ -141,9 +164,11 @@ const AppContent: Component = () => {
 
 function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <I18nProvider>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </I18nProvider>
   )
 }
 
