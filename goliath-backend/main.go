@@ -102,15 +102,15 @@ func main() {
 		public.GET("/exercises", exerciseHandlers.GetExercises)
 		public.GET("/exercises/:id", exerciseHandlers.GetExercise)
 		public.GET("/exercise-types", exerciseHandlers.GetExerciseTypes)
-
-		// User-related routes
-		public.GET("/users", userHandlers.GetUsers)
 	}
 
 	// Authenticated user routes - requires authentication but not admin
 	auth := r.Group("/")
 	auth.Use(middleware.RequireAuth())
 	{
+		// User info
+		auth.GET("/me", userHandlers.GetMe)
+		
 		// Workout routes - users can only access their own workouts
 		auth.GET("/workouts", workoutHandlers.GetWorkouts)
 		auth.GET("/workouts/:id", workoutHandlers.GetWorkout)
@@ -144,6 +144,9 @@ func main() {
 		// Create and update exercise requires admin role (transaction is already global)
 		admin.POST("/exercises", exerciseHandlers.CreateExercise)
 		admin.PUT("/exercises/:id", exerciseHandlers.UpdateExercise)
+		
+		// User management - admin only
+		admin.GET("/users", userHandlers.GetUsers)
 	}
 
 	// Get port from environment or use default

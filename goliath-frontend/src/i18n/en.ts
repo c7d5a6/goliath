@@ -1,7 +1,6 @@
 export const en = {
   app: {
     title: 'Goliath Fitness',
-    subtitle: 'Complete database of muscles and exercises',
     footer: 'Goliath Fitness Tracker · Built with SolidJS + Tailwind',
   },
   nav: {

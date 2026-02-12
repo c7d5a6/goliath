@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"goliath/middleware"
 	"goliath/services"
 
 	"github.com/gin-gonic/gin"
@@ -34,3 +35,14 @@ func (h *UserHandlers) GetUsers(c *gin.Context) {
 	})
 }
 
+// GetMe handles GET /me - returns the current authenticated user
+func (h *UserHandlers) GetMe(c *gin.Context) {
+	// Get user from context (set by UserLoader middleware)
+	user, exists := middleware.GetUserFromContext(c.Request.Context())
+	if !exists {
+		c.JSON(401, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	c.JSON(200, user)
+}

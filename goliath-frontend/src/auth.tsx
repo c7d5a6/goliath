@@ -11,10 +11,20 @@ import {
 } from 'firebase/auth'
 import { auth } from './firebase'
 
+interface BackendUser {
+  id: number
+  email: string
+  role: string
+  firebase_uid: string
+  created_when: string
+  modified_when: string
+}
+
 interface AuthState {
   user: FirebaseUser | null
   loading: boolean
   token: string | null
+  backendUser: BackendUser | null
 }
 
 interface AuthContextType extends AuthState {
@@ -23,6 +33,7 @@ interface AuthContextType extends AuthState {
   signInWithGoogle: () => Promise<void>
   signOut: () => Promise<void>
   refreshToken: () => Promise<string | null>
+  isAdmin: boolean
 }
 
 const AuthContext = createContext<AuthContextType>()
@@ -32,7 +43,26 @@ export const AuthProvider: ParentComponent = (props) => {
     user: null,
     loading: true,
     token: null,
+    backendUser: null,
   })
+
+  // Fetch backend user data
+  const fetchBackendUser = async (token: string): Promise<BackendUser | null> => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/me`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      })
+      if (response.ok) {
+        return await response.json()
+      }
+      return null
+    } catch (error) {
+      console.error('Failed to fetch backend user:', error)
+      return null
+    }
+  }
 
   // Listen for auth state changes
   createEffect(() => {
@@ -42,8 +72,13 @@ export const AuthProvider: ParentComponent = (props) => {
         // User is signed in
         const token = await user.getIdToken()
         console.log('Got token:', token.substring(0, 20) + '...')
+        
+        // Fetch backend user data
+        const backendUser = await fetchBackendUser(token)
+        
         setState('user', user)
         setState('token', token)
+        setState('backendUser', backendUser)
         setState('loading', false)
         // Store token in localStorage for persistence
         localStorage.setItem('firebase_token', token)
@@ -51,6 +86,7 @@ export const AuthProvider: ParentComponent = (props) => {
         // User is signed out
         setState('user', null)
         setState('token', null)
+        setState('backendUser', null)
         setState('loading', false)
         localStorage.removeItem('firebase_token')
       }
@@ -63,7 +99,8 @@ export const AuthProvider: ParentComponent = (props) => {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password)
       const token = await userCredential.user.getIdToken()
-      setState({ token })
+      const backendUser = await fetchBackendUser(token)
+      setState({ token, backendUser })
     } catch (error: any) {
       console.error('Sign in error:', error)
       throw new Error(error.message)
@@ -74,7 +111,8 @@ export const AuthProvider: ParentComponent = (props) => {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password)
       const token = await userCredential.user.getIdToken()
-      setState({ token })
+      const backendUser = await fetchBackendUser(token)
+      setState({ token, backendUser })
     } catch (error: any) {
       console.error('Sign up error:', error)
       throw new Error(error.message)
@@ -86,7 +124,8 @@ export const AuthProvider: ParentComponent = (props) => {
       const provider = new GoogleAuthProvider()
       const userCredential = await signInWithPopup(auth, provider)
       const token = await userCredential.user.getIdToken()
-      setState({ token })
+      const backendUser = await fetchBackendUser(token)
+      setState({ token, backendUser })
     } catch (error: any) {
       console.error('Google sign in error:', error)
       throw new Error(error.message)
@@ -96,7 +135,7 @@ export const AuthProvider: ParentComponent = (props) => {
   const signOut = async () => {
     try {
       await firebaseSignOut(auth)
-      setState({ user: null, token: null })
+      setState({ user: null, token: null, backendUser: null })
       localStorage.removeItem('firebase_token')
     } catch (error: any) {
       console.error('Sign out error:', error)
@@ -123,6 +162,8 @@ export const AuthProvider: ParentComponent = (props) => {
     get user() { return state.user },
     get loading() { return state.loading },
     get token() { return state.token },
+    get backendUser() { return state.backendUser },
+    get isAdmin() { return state.backendUser?.role === 'ADMIN' },
     signIn,
     signUp,
     signInWithGoogle,

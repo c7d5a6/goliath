@@ -2,6 +2,7 @@ import { Router, Route, A } from '@solidjs/router'
 import { Show, For, type Component, type ParentComponent } from 'solid-js'
 import { AuthProvider, useAuth } from './auth'
 import { I18nProvider, useI18n, localeLabels, type SupportedLocale } from './i18n'
+import Home from './components/Home'
 import Muscles from './components/Muscles'
 import Exercises from './components/Exercises'
 import AddExercise from './components/AddExercise'
@@ -45,9 +46,6 @@ const Layout: ParentComponent = (props) => {
               <span class="text-2xl sm:text-3xl">💪</span>
               {t('app.title')}
             </h1>
-            <p class="text-slate-500 mt-1">
-              {t('app.subtitle')}
-            </p>
           </div>
 
           {/* User Menu */}
@@ -85,31 +83,16 @@ const Layout: ParentComponent = (props) => {
 
         {/* Navigation */}
         <nav class="flex gap-2 mt-4 flex-wrap">
-          <A
-            href="/"
-            class="px-4 py-2 rounded-lg text-sm font-medium transition-all"
-            activeClass="bg-primary-500 text-white shadow-md"
-            inactiveClass="bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
-            end
-          >
-            {t('nav.muscles')}
-          </A>
-          <A
-            href="/exercises"
-            class="px-4 py-2 rounded-lg text-sm font-medium transition-all"
-            activeClass="bg-primary-500 text-white shadow-md"
-            inactiveClass="bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
-          >
-            {t('nav.exercises')}
-          </A>
-          <A
-            href="/workouts"
-            class="px-4 py-2 rounded-lg text-sm font-medium transition-all"
-            activeClass="bg-primary-500 text-white shadow-md"
-            inactiveClass="bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
-          >
-            {t('nav.workouts')}
-          </A>
+          <Show when={auth.user}>
+            <A
+              href="/workouts"
+              class="px-4 py-2 rounded-lg text-sm font-medium transition-all"
+              activeClass="bg-primary-500 text-white shadow-md"
+              inactiveClass="bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
+            >
+              {t('nav.workouts')}
+            </A>
+          </Show>
           <Show when={auth.user}>
             <A
               href="/exercise-logs"
@@ -121,13 +104,31 @@ const Layout: ParentComponent = (props) => {
             </A>
           </Show>
           <A
-            href="/users"
+            href="/exercises"
             class="px-4 py-2 rounded-lg text-sm font-medium transition-all"
             activeClass="bg-primary-500 text-white shadow-md"
             inactiveClass="bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
           >
-            {t('nav.users')}
+            {t('nav.exercises')}
           </A>
+          <A
+            href="/muscles"
+            class="px-4 py-2 rounded-lg text-sm font-medium transition-all"
+            activeClass="bg-primary-500 text-white shadow-md"
+            inactiveClass="bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
+          >
+            {t('nav.muscles')}
+          </A>
+          <Show when={auth.isAdmin}>
+            <A
+              href="/users"
+              class="px-4 py-2 rounded-lg text-sm font-medium transition-all"
+              activeClass="bg-primary-500 text-white shadow-md"
+              inactiveClass="bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
+            >
+              {t('nav.users')}
+            </A>
+          </Show>
         </nav>
       </header>
 
@@ -148,9 +149,9 @@ const AppContent: Component = () => {
   return (
     <Router root={Layout}>
       <Route path="/login" component={Login} />
-      <Route path="/" component={Muscles} />
+      <Route path="/" component={Home} />
+      <Route path="/muscles" component={Muscles} />
       <Route path="/exercises" component={Exercises} />
-      <Route path="/users" component={Users} />
       <Route path="/exercises/new" component={AddExercise} />
       <Route path="/exercises/:id/edit" component={EditExercise} />
       <Route path="/workouts" component={Workouts} />

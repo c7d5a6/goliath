@@ -2,6 +2,7 @@ import { createSignal, createResource, For, Show, createMemo } from 'solid-js'
 import { A } from '@solidjs/router'
 import { apiGet } from '../api'
 import { useI18n, useTranslateArea, useTranslateExerciseType } from '../i18n'
+import { useAuth } from '../auth'
 
 interface ExerciseArea {
   exercise_area_id: number
@@ -37,6 +38,7 @@ export default function Exercises() {
   const { t } = useI18n()
   const tArea = useTranslateArea()
   const tExerciseType = useTranslateExerciseType()
+  const auth = useAuth()
 
   const filteredExercises = createMemo(() => {
     const exercises = data()?.exercises ?? []
@@ -254,16 +256,18 @@ export default function Exercises() {
         </Show>
       </div>
 
-      {/* Floating Action Button */}
-      <A
-        href="/exercises/new"
-        class="fixed bottom-6 right-6 w-14 h-14 bg-accent-500 text-white rounded-full shadow-lg
-               flex items-center justify-center text-2xl hover:bg-accent-600 hover:scale-110
-               active:scale-95 transition-all z-50"
-        title={t('exercises.addNew') ?? ''}
-      >
-        ➕
-      </A>
+      {/* Floating Action Button - Admin Only */}
+      <Show when={auth.isAdmin}>
+        <A
+          href="/exercises/new"
+          class="fixed bottom-6 right-6 w-14 h-14 bg-accent-500 text-white rounded-full shadow-lg
+                 flex items-center justify-center text-2xl hover:bg-accent-600 hover:scale-110
+                 active:scale-95 transition-all z-50"
+          title={t('exercises.addNew') ?? ''}
+        >
+          ➕
+        </A>
+      </Show>
     </div>
   )
 }

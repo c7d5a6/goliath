@@ -3,7 +3,6 @@ import type { Dictionary } from './en'
 export const ru: Dictionary = {
   app: {
     title: 'Goliath Фитнес',
-    subtitle: 'Полная база данных мышц и упражнений',
     footer: 'Goliath Фитнес Трекер · Создан с SolidJS + Tailwind',
   },
   nav: {
