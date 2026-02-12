@@ -2,7 +2,7 @@ import { createSignal, createResource, For, Show, createMemo } from 'solid-js'
 import { A } from '@solidjs/router'
 import { apiGet, apiDelete } from '../api'
 import { useAuth } from '../auth'
-import { useI18n, plural, useTranslateExerciseType } from '../i18n'
+import { useI18n, useTranslateExerciseType } from '../i18n'
 
 interface WorkoutExercise {
   id: number

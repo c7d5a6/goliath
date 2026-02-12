@@ -203,7 +203,16 @@ export const en = {
   },
 } as const
 
-export type Dictionary = typeof en
+// Helper type to make all string values generic (allows translations)
+type RecursiveStringRecord<T> = {
+  [K in keyof T]: T[K] extends string
+    ? string
+    : T[K] extends Record<string, any>
+    ? RecursiveStringRecord<T[K]>
+    : T[K]
+}
+
+export type Dictionary = RecursiveStringRecord<typeof en>
 
 /**
  * Mapping from backend exercise-area names to display names.
