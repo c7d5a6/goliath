@@ -10,6 +10,7 @@ import {
   type User as FirebaseUser,
 } from 'firebase/auth'
 import { auth } from './firebase'
+import { API_BASE } from './config'
 
 interface BackendUser {
   id: number
@@ -49,7 +50,7 @@ export const AuthProvider: ParentComponent = (props) => {
   // Fetch backend user data
   const fetchBackendUser = async (token: string): Promise<BackendUser | null> => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/me`, {
+      const response = await fetch(`${API_BASE}/me`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
