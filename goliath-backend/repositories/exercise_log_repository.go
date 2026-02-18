@@ -401,3 +401,146 @@ func (r *ExerciseLogRepository) Delete(ctx context.Context, id int, userID int) 
 	_, err = executor.ExecContext(ctx, `DELETE FROM exercise_log WHERE id = ? AND user_id = ?`, id, userID)
 	return err
 }
+
+// --- Calendar view queries ---
+
+// CalendarYearEntry represents a raw (date, workout_id) pair for year view
+type CalendarYearEntry struct {
+	Date      string
+	WorkoutID *int
+}
+
+// CalendarMonthEntry represents a grouped entry for month view
+type CalendarMonthEntry struct {
+	Date          string
+	WorkoutID     *int
+	WorkoutName   string
+	ExerciseCount int
+}
+
+// CalendarWeekEntry represents a single exercise entry for week view
+type CalendarWeekEntry struct {
+	Date         string
+	WorkoutID    *int
+	WorkoutName  string
+	ExerciseName string
+	ExerciseType string
+	Sets         *int
+	Reps         *int
+	TimeSeconds  *int
+	Weight       *float64
+	RestSeconds  *int
+}
+
+// GetCalendarYearData returns distinct (date, workout_id) pairs for a given year
+func (r *ExerciseLogRepository) GetCalendarYearData(ctx context.Context, userID int, year string) ([]CalendarYearEntry, error) {
+	executor, err := r.GetExecutor(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := executor.QueryContext(ctx, `
+		SELECT 
+			DATE(el.logged_when) as log_date,
+			el.workout_id
+		FROM exercise_log el
+		WHERE el.user_id = ? 
+			AND strftime('%Y', el.logged_when) = ?
+		GROUP BY DATE(el.logged_when), el.workout_id
+		ORDER BY log_date
+	`, userID, year)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var entries []CalendarYearEntry
+	for rows.Next() {
+		var entry CalendarYearEntry
+		if err := rows.Scan(&entry.Date, &entry.WorkoutID); err != nil {
+			return nil, err
+		}
+		entries = append(entries, entry)
+	}
+	return entries, rows.Err()
+}
+
+// GetCalendarMonthData returns log data grouped by (date, workout_id) for a given month
+func (r *ExerciseLogRepository) GetCalendarMonthData(ctx context.Context, userID int, year, month string) ([]CalendarMonthEntry, error) {
+	executor, err := r.GetExecutor(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := executor.QueryContext(ctx, `
+		SELECT 
+			DATE(el.logged_when) as log_date,
+			el.workout_id,
+			COALESCE(w.name, '') as workout_name,
+			COUNT(*) as exercise_count
+		FROM exercise_log el
+		LEFT JOIN workout w ON el.workout_id = w.id
+		WHERE el.user_id = ? 
+			AND strftime('%Y', el.logged_when) = ?
+			AND strftime('%m', el.logged_when) = ?
+		GROUP BY DATE(el.logged_when), el.workout_id
+		ORDER BY log_date, workout_name
+	`, userID, year, month)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var entries []CalendarMonthEntry
+	for rows.Next() {
+		var entry CalendarMonthEntry
+		if err := rows.Scan(&entry.Date, &entry.WorkoutID, &entry.WorkoutName, &entry.ExerciseCount); err != nil {
+			return nil, err
+		}
+		entries = append(entries, entry)
+	}
+	return entries, rows.Err()
+}
+
+// GetCalendarWeekData returns detailed exercise data for a date range (week)
+func (r *ExerciseLogRepository) GetCalendarWeekData(ctx context.Context, userID int, startDate, endDate string) ([]CalendarWeekEntry, error) {
+	executor, err := r.GetExecutor(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := executor.QueryContext(ctx, `
+		SELECT 
+			DATE(el.logged_when) as log_date,
+			el.workout_id,
+			COALESCE(w.name, '') as workout_name,
+			e.name as exercise_name,
+			e.type as exercise_type,
+			el.sets, el.reps, el.time_seconds, el.weight, el.rest_seconds
+		FROM exercise_log el
+		LEFT JOIN workout w ON el.workout_id = w.id
+		JOIN exercise e ON el.exercise_id = e.id
+		WHERE el.user_id = ? 
+			AND DATE(el.logged_when) >= ?
+			AND DATE(el.logged_when) <= ?
+		ORDER BY log_date, el.workout_id, el.position
+	`, userID, startDate, endDate)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var entries []CalendarWeekEntry
+	for rows.Next() {
+		var entry CalendarWeekEntry
+		if err := rows.Scan(
+			&entry.Date, &entry.WorkoutID, &entry.WorkoutName,
+			&entry.ExerciseName, &entry.ExerciseType,
+			&entry.Sets, &entry.Reps, &entry.TimeSeconds, &entry.Weight, &entry.RestSeconds,
+		); err != nil {
+			return nil, err
+		}
+		entries = append(entries, entry)
+	}
+	return entries, rows.Err()
+}

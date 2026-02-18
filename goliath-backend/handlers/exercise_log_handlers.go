@@ -2,10 +2,12 @@ package handlers
 
 import (
 	"database/sql"
+	"fmt"
 	"goliath/middleware"
 	"goliath/services"
 	"log"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -328,4 +330,93 @@ func (h *ExerciseLogHandlers) DeleteExerciseLog(c *gin.Context) {
 	}
 
 	c.JSON(200, gin.H{"message": "Exercise log deleted successfully"})
+}
+
+// GetCalendarYear handles GET /exercise-logs/calendar/year?year=2026
+func (h *ExerciseLogHandlers) GetCalendarYear(c *gin.Context) {
+	ctx := c.Request.Context()
+	user, hasUser := middleware.GetUserFromContext(ctx)
+	if !hasUser {
+		c.JSON(401, gin.H{"error": "Authentication required"})
+		return
+	}
+
+	year := c.DefaultQuery("year", strconv.Itoa(time.Now().Year()))
+
+	days, err := h.exerciseLogService.GetCalendarYear(ctx, user.ID, year)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	yearInt, _ := strconv.Atoi(year)
+	c.JSON(200, gin.H{
+		"year": yearInt,
+		"days": days,
+	})
+}
+
+// GetCalendarMonth handles GET /exercise-logs/calendar/month?year=2026&month=2
+func (h *ExerciseLogHandlers) GetCalendarMonth(c *gin.Context) {
+	ctx := c.Request.Context()
+	user, hasUser := middleware.GetUserFromContext(ctx)
+	if !hasUser {
+		c.JSON(401, gin.H{"error": "Authentication required"})
+		return
+	}
+
+	now := time.Now()
+	year := c.DefaultQuery("year", strconv.Itoa(now.Year()))
+	month := c.DefaultQuery("month", strconv.Itoa(int(now.Month())))
+
+	// Zero-pad month for strftime comparison
+	monthInt, _ := strconv.Atoi(month)
+	monthPadded := fmt.Sprintf("%02d", monthInt)
+
+	days, err := h.exerciseLogService.GetCalendarMonth(ctx, user.ID, year, monthPadded)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	yearInt, _ := strconv.Atoi(year)
+	c.JSON(200, gin.H{
+		"year":  yearInt,
+		"month": monthInt,
+		"days":  days,
+	})
+}
+
+// GetCalendarWeek handles GET /exercise-logs/calendar/week?start=2026-02-09&end=2026-02-15
+func (h *ExerciseLogHandlers) GetCalendarWeek(c *gin.Context) {
+	ctx := c.Request.Context()
+	user, hasUser := middleware.GetUserFromContext(ctx)
+	if !hasUser {
+		c.JSON(401, gin.H{"error": "Authentication required"})
+		return
+	}
+
+	// Default to current week (Monday to Sunday)
+	now := time.Now()
+	weekday := int(now.Weekday())
+	if weekday == 0 {
+		weekday = 7
+	}
+	monday := now.AddDate(0, 0, -(weekday - 1))
+	sunday := monday.AddDate(0, 0, 6)
+
+	startDate := c.DefaultQuery("start", monday.Format("2006-01-02"))
+	endDate := c.DefaultQuery("end", sunday.Format("2006-01-02"))
+
+	days, err := h.exerciseLogService.GetCalendarWeek(ctx, user.ID, startDate, endDate)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"start_date": startDate,
+		"end_date":   endDate,
+		"days":       days,
+	})
 }

@@ -1,8 +1,9 @@
-import { createResource, For, Show, createMemo } from 'solid-js'
+import { createResource, createSignal, For, Show, createMemo } from 'solid-js'
 import { A } from '@solidjs/router'
 import { apiGet, apiDelete } from '../api'
 import { useAuth } from '../auth'
 import { useI18n, useDateLocale, plural, useTranslateExerciseType } from '../i18n'
+import CalendarView, { type ViewMode } from './CalendarView'
 
 interface ExerciseLog {
   id: number
@@ -42,6 +43,10 @@ export default function ExerciseLogs() {
   const { t } = useI18n()
   const dateLocale = useDateLocale()
   const tExerciseType = useTranslateExerciseType()
+
+  // View toggle: list vs calendar
+  const [viewType, setViewType] = createSignal<'list' | 'calendar'>('list')
+  const [calendarMode, setCalendarMode] = createSignal<ViewMode>('month')
 
   function formatDate(dateStr: string): string {
     const date = new Date(dateStr)
@@ -116,25 +121,63 @@ export default function ExerciseLogs() {
 
   return (
     <div class="relative">
-      {/* Stats */}
-      <Show when={data()}>
-        <div class="flex gap-3 mb-6 flex-wrap">
-          <span class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-full text-sm font-medium shadow-sm">
-            {t('exerciseLog.title')}
-            <span class="bg-accent-500 text-white px-2 py-0.5 rounded-full text-xs font-semibold">
-              {totalLogs()}
-            </span>
-          </span>
-          <Show when={groupedLogs().length > 0}>
+      {/* Stats + View Toggle */}
+      <div class="flex items-center justify-between gap-3 mb-6 flex-wrap">
+        <div class="flex gap-3 flex-wrap">
+          <Show when={data()}>
             <span class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-full text-sm font-medium shadow-sm">
-              {t('exerciseLog.days')}
-              <span class="bg-primary-500 text-white px-2 py-0.5 rounded-full text-xs font-semibold">
-                {groupedLogs().length}
+              {t('exerciseLog.title')}
+              <span class="bg-accent-500 text-white px-2 py-0.5 rounded-full text-xs font-semibold">
+                {totalLogs()}
               </span>
             </span>
+            <Show when={groupedLogs().length > 0}>
+              <span class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-full text-sm font-medium shadow-sm">
+                {t('exerciseLog.days')}
+                <span class="bg-primary-500 text-white px-2 py-0.5 rounded-full text-xs font-semibold">
+                  {groupedLogs().length}
+                </span>
+              </span>
+            </Show>
           </Show>
         </div>
-      </Show>
+
+        {/* View Toggle */}
+        <Show when={auth.user}>
+          <div class="flex bg-white border border-slate-200 rounded-full shadow-sm overflow-hidden">
+            <button
+              class={`px-3 py-1.5 text-sm font-medium transition-all ${
+                viewType() === 'list'
+                  ? 'bg-primary-500 text-white'
+                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+              }`}
+              onClick={() => setViewType('list')}
+            >
+              <span class="flex items-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                </svg>
+                {t('exerciseLog.listView')}
+              </span>
+            </button>
+            <button
+              class={`px-3 py-1.5 text-sm font-medium transition-all ${
+                viewType() === 'calendar'
+                  ? 'bg-primary-500 text-white'
+                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+              }`}
+              onClick={() => setViewType('calendar')}
+            >
+              <span class="flex items-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                {t('exerciseLog.calendarView')}
+              </span>
+            </button>
+          </div>
+        </Show>
+      </div>
 
       {/* Auth Check */}
       <Show when={!auth.user}>
@@ -152,6 +195,13 @@ export default function ExerciseLogs() {
       </Show>
 
       <Show when={auth.user}>
+        {/* Calendar View */}
+        <Show when={viewType() === 'calendar'}>
+          <CalendarView viewMode={calendarMode} setViewMode={setCalendarMode} />
+        </Show>
+
+        {/* List View */}
+        <Show when={viewType() === 'list'}>
         {/* Table Container */}
         <div class="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
           {/* Header */}
@@ -388,6 +438,7 @@ export default function ExerciseLogs() {
             </Show>
           </Show>
         </div>
+        </Show>
       </Show>
     </div>
   )

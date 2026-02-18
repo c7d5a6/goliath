@@ -127,6 +127,9 @@ func main() {
 		
 		// Exercise log routes - track completed exercises
 		auth.GET("/exercise-logs", exerciseLogHandlers.GetExerciseLogs)
+		auth.GET("/exercise-logs/calendar/year", exerciseLogHandlers.GetCalendarYear)
+		auth.GET("/exercise-logs/calendar/month", exerciseLogHandlers.GetCalendarMonth)
+		auth.GET("/exercise-logs/calendar/week", exerciseLogHandlers.GetCalendarWeek)
 		auth.GET("/exercise-logs/:id", exerciseLogHandlers.GetExerciseLog)
 		auth.POST("/exercise-logs", exerciseLogHandlers.CreateExerciseLog)
 		auth.PUT("/exercise-logs/:id", exerciseLogHandlers.UpdateExerciseLog)

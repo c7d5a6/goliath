@@ -187,6 +187,17 @@ export const en = {
     details: 'Details',
     today: 'Today',
     yesterday: 'Yesterday',
+    listView: 'List',
+    calendarView: 'Calendar',
+  },
+  calendar: {
+    title: 'Workout Calendar',
+    subtitle: 'Visual overview of your training schedule',
+    yearView: 'Year',
+    monthView: 'Month',
+    weekView: 'Week',
+    noWorkout: 'No workout',
+    noEntries: 'No entries',
   },
   users: {
     totalUsers: 'Total Users',

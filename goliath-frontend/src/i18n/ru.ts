@@ -189,6 +189,17 @@ export const ru: Dictionary = {
     details: 'Подробности',
     today: 'Сегодня',
     yesterday: 'Вчера',
+    listView: 'Список',
+    calendarView: 'Календарь',
+  },
+  calendar: {
+    title: 'Календарь тренировок',
+    subtitle: 'Визуальный обзор вашего расписания тренировок',
+    yearView: 'Год',
+    monthView: 'Месяц',
+    weekView: 'Неделя',
+    noWorkout: 'Без тренировки',
+    noEntries: 'Нет записей',
   },
   users: {
     totalUsers: 'Всего пользователей',

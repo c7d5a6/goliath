@@ -462,6 +462,197 @@ func (s *ExerciseLogService) GetWorkoutIntensityData(ctx context.Context, userID
 	return map[string]interface{}{"areas": areas}, nil
 }
 
+// --- Calendar view types and methods ---
+
+// CalendarYearDay represents a day in the year calendar view
+type CalendarYearDay struct {
+	Date       string `json:"date"`
+	WorkoutIDs []int  `json:"workout_ids"`
+}
+
+// CalendarMonthWorkout represents a workout group in the month calendar view
+type CalendarMonthWorkout struct {
+	WorkoutID     int    `json:"workout_id"`
+	WorkoutName   string `json:"workout_name"`
+	ExerciseCount int    `json:"exercise_count"`
+}
+
+// CalendarMonthDay represents a day in the month calendar view
+type CalendarMonthDay struct {
+	Date       string                 `json:"date"`
+	WorkoutIDs []int                  `json:"workout_ids"`
+	Workouts   []CalendarMonthWorkout `json:"workouts"`
+}
+
+// CalendarWeekExercise represents an exercise in the week calendar view
+type CalendarWeekExercise struct {
+	ExerciseName string   `json:"exercise_name"`
+	ExerciseType string   `json:"exercise_type"`
+	Sets         *int     `json:"sets,omitempty"`
+	Reps         *int     `json:"reps,omitempty"`
+	TimeSeconds  *int     `json:"time_seconds,omitempty"`
+	Weight       *float64 `json:"weight,omitempty"`
+	RestSeconds  *int     `json:"rest_seconds,omitempty"`
+}
+
+// CalendarWeekWorkout represents a workout group in the week calendar view
+type CalendarWeekWorkout struct {
+	WorkoutID   int                    `json:"workout_id"`
+	WorkoutName string                 `json:"workout_name"`
+	Exercises   []CalendarWeekExercise `json:"exercises"`
+}
+
+// CalendarWeekDay represents a day in the week calendar view
+type CalendarWeekDay struct {
+	Date       string                `json:"date"`
+	WorkoutIDs []int                 `json:"workout_ids"`
+	Workouts   []CalendarWeekWorkout `json:"workouts"`
+}
+
+// GetCalendarYear returns year calendar data grouped by date
+func (s *ExerciseLogService) GetCalendarYear(ctx context.Context, userID int, year string) ([]CalendarYearDay, error) {
+	entries, err := s.exerciseLogRepo.GetCalendarYearData(ctx, userID, year)
+	if err != nil {
+		return nil, err
+	}
+
+	dayMap := make(map[string]*CalendarYearDay)
+	var order []string
+
+	for _, e := range entries {
+		if _, exists := dayMap[e.Date]; !exists {
+			dayMap[e.Date] = &CalendarYearDay{Date: e.Date}
+			order = append(order, e.Date)
+		}
+		wid := 0
+		if e.WorkoutID != nil {
+			wid = *e.WorkoutID
+		}
+		dayMap[e.Date].WorkoutIDs = append(dayMap[e.Date].WorkoutIDs, wid)
+	}
+
+	result := make([]CalendarYearDay, 0, len(order))
+	for _, date := range order {
+		result = append(result, *dayMap[date])
+	}
+	return result, nil
+}
+
+// GetCalendarMonth returns month calendar data grouped by date with workout summaries
+func (s *ExerciseLogService) GetCalendarMonth(ctx context.Context, userID int, year, month string) ([]CalendarMonthDay, error) {
+	entries, err := s.exerciseLogRepo.GetCalendarMonthData(ctx, userID, year, month)
+	if err != nil {
+		return nil, err
+	}
+
+	dayMap := make(map[string]*CalendarMonthDay)
+	var order []string
+
+	for _, e := range entries {
+		if _, exists := dayMap[e.Date]; !exists {
+			dayMap[e.Date] = &CalendarMonthDay{Date: e.Date}
+			order = append(order, e.Date)
+		}
+		wid := 0
+		if e.WorkoutID != nil {
+			wid = *e.WorkoutID
+		}
+		// Add workout ID to unique list
+		found := false
+		for _, id := range dayMap[e.Date].WorkoutIDs {
+			if id == wid {
+				found = true
+				break
+			}
+		}
+		if !found {
+			dayMap[e.Date].WorkoutIDs = append(dayMap[e.Date].WorkoutIDs, wid)
+		}
+		dayMap[e.Date].Workouts = append(dayMap[e.Date].Workouts, CalendarMonthWorkout{
+			WorkoutID:     wid,
+			WorkoutName:   e.WorkoutName,
+			ExerciseCount: e.ExerciseCount,
+		})
+	}
+
+	result := make([]CalendarMonthDay, 0, len(order))
+	for _, date := range order {
+		result = append(result, *dayMap[date])
+	}
+	return result, nil
+}
+
+// GetCalendarWeek returns week calendar data with full exercise details grouped by workout
+func (s *ExerciseLogService) GetCalendarWeek(ctx context.Context, userID int, startDate, endDate string) ([]CalendarWeekDay, error) {
+	entries, err := s.exerciseLogRepo.GetCalendarWeekData(ctx, userID, startDate, endDate)
+	if err != nil {
+		return nil, err
+	}
+
+	type dayWorkoutKey struct {
+		Date      string
+		WorkoutID int
+	}
+
+	dayMap := make(map[string]*CalendarWeekDay)
+	workoutIndices := make(map[dayWorkoutKey]int) // maps to index in day.Workouts
+	var order []string
+
+	for _, e := range entries {
+		wid := 0
+		if e.WorkoutID != nil {
+			wid = *e.WorkoutID
+		}
+
+		// Ensure day exists
+		if _, exists := dayMap[e.Date]; !exists {
+			dayMap[e.Date] = &CalendarWeekDay{Date: e.Date}
+			order = append(order, e.Date)
+		}
+		day := dayMap[e.Date]
+
+		// Add workout ID to unique list
+		found := false
+		for _, id := range day.WorkoutIDs {
+			if id == wid {
+				found = true
+				break
+			}
+		}
+		if !found {
+			day.WorkoutIDs = append(day.WorkoutIDs, wid)
+		}
+
+		// Ensure workout group exists
+		key := dayWorkoutKey{Date: e.Date, WorkoutID: wid}
+		if _, exists := workoutIndices[key]; !exists {
+			day.Workouts = append(day.Workouts, CalendarWeekWorkout{
+				WorkoutID:   wid,
+				WorkoutName: e.WorkoutName,
+			})
+			workoutIndices[key] = len(day.Workouts) - 1
+		}
+
+		// Add exercise to the workout group
+		idx := workoutIndices[key]
+		day.Workouts[idx].Exercises = append(day.Workouts[idx].Exercises, CalendarWeekExercise{
+			ExerciseName: e.ExerciseName,
+			ExerciseType: e.ExerciseType,
+			Sets:         e.Sets,
+			Reps:         e.Reps,
+			TimeSeconds:  e.TimeSeconds,
+			Weight:       e.Weight,
+			RestSeconds:  e.RestSeconds,
+		})
+	}
+
+	result := make([]CalendarWeekDay, 0, len(order))
+	for _, date := range order {
+		result = append(result, *dayMap[date])
+	}
+	return result, nil
+}
+
 // DeleteExerciseLog deletes an exercise log with user authorization
 func (s *ExerciseLogService) DeleteExerciseLog(ctx context.Context, id int, userID int) error {
 	// Check if log exists and belongs to user
