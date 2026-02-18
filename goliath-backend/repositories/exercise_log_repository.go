@@ -249,6 +249,7 @@ func (r *ExerciseLogRepository) GetWorkoutIntensityData(ctx context.Context, use
 	}
 
 	// Get data: exercise_id, week_offset, max(reps or time_seconds)
+	// Join with exercise table to determine type-aware intensity calculation
 	rows, err := executor.QueryContext(ctx, `
 		WITH workout_exercises AS (
 			SELECT DISTINCT exercise_id 
@@ -268,6 +269,7 @@ func (r *ExerciseLogRepository) GetWorkoutIntensityData(ctx context.Context, use
 		weekly_logs AS (
 			SELECT 
 				el.exercise_id,
+				e.type as exercise_type,
 				CAST((julianday('now') - julianday(el.logged_when)) / 7 AS INTEGER) as week_offset,
 				COALESCE(el.reps, 0) as reps,
 				COALESCE(el.time_seconds, 0) as time_seconds,
@@ -275,6 +277,7 @@ func (r *ExerciseLogRepository) GetWorkoutIntensityData(ctx context.Context, use
 				em.max_time
 			FROM exercise_log el
 			JOIN exercise_maxes em ON el.exercise_id = em.exercise_id
+			JOIN exercise e ON el.exercise_id = e.id
 			WHERE el.user_id = ?
 				AND el.exercise_id IN (SELECT exercise_id FROM workout_exercises)
 				AND julianday('now') - julianday(el.logged_when) <= 35
@@ -283,9 +286,10 @@ func (r *ExerciseLogRepository) GetWorkoutIntensityData(ctx context.Context, use
 			exercise_id,
 			week_offset,
 			AVG(CASE 
-				WHEN max_reps > 0 THEN CAST(reps AS REAL) / max_reps * 100
-				WHEN max_time > 0 THEN CAST(time_seconds AS REAL) / max_time * 100
-				ELSE 0
+				WHEN exercise_type IN ('Isometric', 'Isometric Weighted', 'Timed Reps', 'Timed Reps Weighted') THEN
+					CASE WHEN max_time > 0 THEN CAST(time_seconds AS REAL) / max_time * 100 ELSE 0 END
+				ELSE
+					CASE WHEN max_reps > 0 THEN CAST(reps AS REAL) / max_reps * 100 ELSE 0 END
 			END) as avg_intensity
 		FROM weekly_logs
 		WHERE week_offset <= 4

@@ -77,6 +77,8 @@ func (s *ExerciseService) GetExerciseTypes() []string {
 		string(entities.ExerciseTypeEccentric),
 		string(entities.ExerciseTypeRepsWeighted),
 		string(entities.ExerciseTypeIsometricWeighted),
+		string(entities.ExerciseTypeTimedReps),
+		string(entities.ExerciseTypeTimedRepsWeighted),
 	}
 }
 

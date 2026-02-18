@@ -270,8 +270,8 @@ export default function EditWorkout() {
 
       // Calculate exercise time based on type
       let exerciseTime = 0
-      if (ex.exercise_type === 'Isometric' || ex.exercise_type === 'Isometric Weighted') {
-        // Isometric exercises use the time field, multiplied by sets
+      if (ex.exercise_type === 'Isometric' || ex.exercise_type === 'Isometric Weighted' || ex.exercise_type === 'Timed Reps' || ex.exercise_type === 'Timed Reps Weighted') {
+        // Time-based exercises use the time field, multiplied by sets
         exerciseTime = timeSeconds * sets
       } else {
         // Reps-based exercises: reps * 3 seconds * sets
@@ -316,11 +316,11 @@ export default function EditWorkout() {
   }
 
   // Helper functions to determine which fields to show for each exercise type
-  const showSets = (type: string) => ['Reps', 'Isometric', 'Eccentric', 'Reps Weighted', 'Isometric Weighted'].includes(type)
-  const showReps = (type: string) => ['Reps', 'Eccentric', 'Reps Weighted'].includes(type)
-  const showWeight = (type: string) => ['Reps Weighted', 'Isometric Weighted'].includes(type)
-  const showTime = (type: string) => ['Isometric', 'Isometric Weighted'].includes(type)
-  const showRest = (type: string) => ['Reps', 'Isometric', 'Eccentric', 'Reps Weighted', 'Isometric Weighted'].includes(type)
+  const showSets = (type: string) => ['Reps', 'Isometric', 'Eccentric', 'Reps Weighted', 'Isometric Weighted', 'Timed Reps', 'Timed Reps Weighted'].includes(type)
+  const showReps = (type: string) => ['Reps', 'Eccentric', 'Reps Weighted', 'Timed Reps', 'Timed Reps Weighted'].includes(type)
+  const showWeight = (type: string) => ['Reps Weighted', 'Isometric Weighted', 'Timed Reps Weighted'].includes(type)
+  const showTime = (type: string) => ['Isometric', 'Isometric Weighted', 'Timed Reps', 'Timed Reps Weighted'].includes(type)
+  const showRest = (type: string) => ['Reps', 'Isometric', 'Eccentric', 'Reps Weighted', 'Isometric Weighted', 'Timed Reps', 'Timed Reps Weighted'].includes(type)
 
   const handleAddExercise = async (exercise: Exercise) => {
     try {

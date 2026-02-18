@@ -30,6 +30,10 @@ const typeColors: Record<string, { bg: string; text: string }> = {
   Reps: { bg: 'bg-blue-50', text: 'text-blue-600' },
   Eccentric: { bg: 'bg-purple-50', text: 'text-purple-600' },
   Isometric: { bg: 'bg-orange-50', text: 'text-orange-600' },
+  'Reps Weighted': { bg: 'bg-blue-50', text: 'text-blue-700' },
+  'Isometric Weighted': { bg: 'bg-orange-50', text: 'text-orange-700' },
+  'Timed Reps': { bg: 'bg-teal-50', text: 'text-teal-600' },
+  'Timed Reps Weighted': { bg: 'bg-teal-50', text: 'text-teal-700' },
 }
 
 export default function Exercises() {

@@ -280,4 +280,6 @@ export const exerciseTypeNames: Record<string, string> = {
   'Isometric': 'Isometric',
   'Reps Weighted': 'Reps Weighted',
   'Isometric Weighted': 'Isometric Weighted',
+  'Timed Reps': 'Timed Reps',
+  'Timed Reps Weighted': 'Timed Reps Weighted',
 }

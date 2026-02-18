@@ -163,11 +163,20 @@ func (s *ExerciseLogService) GetWorkoutIntensityData(ctx context.Context, userID
 
 	type Exercise struct {
 		ID          int
+		Type        string
 		WorkoutReps int
 		WorkoutTime int
 		MaxReps     int
 		MaxTime     int
 		Areas       []int
+	}
+
+	// Helper: does this exercise type use time for intensity (like isometric)?
+	usesTimeIntensity := func(exType string) bool {
+		return exType == string(entities.ExerciseTypeIsometric) ||
+			exType == string(entities.ExerciseTypeIsometricWeighted) ||
+			exType == string(entities.ExerciseTypeTimedReps) ||
+			exType == string(entities.ExerciseTypeTimedRepsWeighted)
 	}
 
 	exercises := make(map[int]*Exercise)
@@ -191,6 +200,20 @@ func (s *ExerciseLogService) GetWorkoutIntensityData(ctx context.Context, userID
 	}
 
 	log.Printf("Total unique exercises found: %d", len(exerciseIDs))
+
+	// Query 1b: Get exercise types
+	log.Printf("Query 1b: Fetching exercise types...")
+	typeQuery := "SELECT type FROM exercise WHERE id = ?"
+	for _, exID := range exerciseIDs {
+		var exType string
+		err := db.QueryRowContext(ctx, typeQuery, exID).Scan(&exType)
+		if err == nil {
+			exercises[exID].Type = exType
+			log.Printf("  Exercise %d -> type: %s", exID, exType)
+		} else {
+			log.Printf("  Exercise %d -> type lookup error: %v", exID, err)
+		}
+	}
 
 	// Query 2: Get workout configuration (for "workout" column)
 	log.Printf("Query 2: Fetching workout configuration for each exercise...")
@@ -317,10 +340,16 @@ func (s *ExerciseLogService) GetWorkoutIntensityData(ctx context.Context, userID
 
 			ex := exercises[exID]
 			var intensity float64
-			if ex.MaxReps > 0 && reps > 0 {
-				intensity = float64(reps) / float64(ex.MaxReps) * 100
-			} else if ex.MaxTime > 0 && time > 0 {
-				intensity = float64(time) / float64(ex.MaxTime) * 100
+			if usesTimeIntensity(ex.Type) {
+				// Time-based types: use time for intensity
+				if ex.MaxTime > 0 && time > 0 {
+					intensity = float64(time) / float64(ex.MaxTime) * 100
+				}
+			} else {
+				// Reps-based types: use reps for intensity
+				if ex.MaxReps > 0 && reps > 0 {
+					intensity = float64(reps) / float64(ex.MaxReps) * 100
+				}
 			}
 
 			weeklyData[exID][weekOffset] = append(weeklyData[exID][weekOffset], intensity)
@@ -426,14 +455,22 @@ func (s *ExerciseLogService) GetWorkoutIntensityData(ctx context.Context, userID
 			}
 
 			var intensity float64
-			if ex.MaxReps > 0 && ex.WorkoutReps > 0 {
-				intensity = float64(ex.WorkoutReps) / float64(ex.MaxReps) * 100
-				log.Printf("    Exercise %d: workout_reps=%d, max_reps=%d, intensity=%.1f%%", ex.ID, ex.WorkoutReps, ex.MaxReps, intensity)
-			} else if ex.MaxTime > 0 && ex.WorkoutTime > 0 {
-				intensity = float64(ex.WorkoutTime) / float64(ex.MaxTime) * 100
-				log.Printf("    Exercise %d: workout_time=%d, max_time=%d, intensity=%.1f%%", ex.ID, ex.WorkoutTime, ex.MaxTime, intensity)
+			if usesTimeIntensity(ex.Type) {
+				// Time-based types: use time for intensity
+				if ex.MaxTime > 0 && ex.WorkoutTime > 0 {
+					intensity = float64(ex.WorkoutTime) / float64(ex.MaxTime) * 100
+					log.Printf("    Exercise %d (time-based): workout_time=%d, max_time=%d, intensity=%.1f%%", ex.ID, ex.WorkoutTime, ex.MaxTime, intensity)
+				} else {
+					log.Printf("    Exercise %d (time-based): no workout time config or max values", ex.ID)
+				}
 			} else {
-				log.Printf("    Exercise %d: no workout config or max values", ex.ID)
+				// Reps-based types: use reps for intensity
+				if ex.MaxReps > 0 && ex.WorkoutReps > 0 {
+					intensity = float64(ex.WorkoutReps) / float64(ex.MaxReps) * 100
+					log.Printf("    Exercise %d (reps-based): workout_reps=%d, max_reps=%d, intensity=%.1f%%", ex.ID, ex.WorkoutReps, ex.MaxReps, intensity)
+				} else {
+					log.Printf("    Exercise %d (reps-based): no workout reps config or max values", ex.ID)
+				}
 			}
 
 			if intensity > 0 {

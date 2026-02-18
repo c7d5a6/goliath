@@ -267,4 +267,6 @@ export const exerciseTypeNames: Record<string, string> = {
   'Isometric': 'Изометрические',
   'Reps Weighted': 'Повторения с весом',
   'Isometric Weighted': 'Изометрические с весом',
+  'Timed Reps': 'Повторения на время',
+  'Timed Reps Weighted': 'Повторения на время с весом',
 }

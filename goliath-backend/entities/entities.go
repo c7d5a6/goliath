@@ -62,6 +62,8 @@ const (
 	ExerciseTypeEccentric         ExerciseType = "Eccentric"
 	ExerciseTypeRepsWeighted      ExerciseType = "Reps Weighted"
 	ExerciseTypeIsometricWeighted ExerciseType = "Isometric Weighted"
+	ExerciseTypeTimedReps         ExerciseType = "Timed Reps"
+	ExerciseTypeTimedRepsWeighted ExerciseType = "Timed Reps Weighted"
 )
 
 // Exercise represents a specific exercise
