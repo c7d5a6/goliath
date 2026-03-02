@@ -2,7 +2,6 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/goliath.iml" filepath="$PROJECT_DIR$/.idea/goliath.iml" />
       <module fileurl="file://$PROJECT_DIR$/goliath-backend/goliath-backend.iml" filepath="$PROJECT_DIR$/goliath-backend/goliath-backend.iml" />
       <module fileurl="file://$PROJECT_DIR$/goliath-frontend/goliath-frontend.iml" filepath="$PROJECT_DIR$/goliath-frontend/goliath-frontend.iml" />
     </modules>

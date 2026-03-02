@@ -93,7 +93,7 @@ type CreateExerciseLogInput struct {
 // CreateExerciseLog creates a new exercise log for a specific user
 func (s *ExerciseLogService) CreateExerciseLog(ctx context.Context, userID int, input CreateExerciseLogInput) (int64, error) {
 	log.Printf("Service: creating exercise log for exercise %d, user %d", input.ExerciseID, userID)
-	
+
 	// Create exercise log
 	logID, err := s.exerciseLogRepo.Create(ctx, userID, input.WorkoutID, input.ExerciseID, input.Position, input.Sets, input.Reps, input.TimeSeconds, input.Weight, input.RestSeconds, input.Notes)
 	if err != nil {
@@ -116,13 +116,13 @@ type UpdateExerciseLogInput struct {
 // UpdateExerciseLog updates an existing exercise log with user authorization
 func (s *ExerciseLogService) UpdateExerciseLog(ctx context.Context, id int, userID int, input UpdateExerciseLogInput) error {
 	log.Printf("Service: updating exercise log %d for user %d", id, userID)
-	
+
 	// Check if log exists and belongs to user
 	logEntry, err := s.exerciseLogRepo.GetByID(ctx, id, userID)
 	if err != nil {
 		return fmt.Errorf("exercise log not found: %w", err)
 	}
-	
+
 	// Verify ownership
 	if logEntry.UserID != userID {
 		return fmt.Errorf("unauthorized: exercise log does not belong to user")
@@ -143,14 +143,14 @@ func (s *ExerciseLogService) GetWorkoutIntensityData(ctx context.Context, userID
 	QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row
 }) (map[string]interface{}, error) {
 	log.Printf("=== Service: Starting intensity calculation for workout %d, user %d ===", workoutID, userID)
-	
+
 	// Query 1: Get all exercise IDs from both workout definition and logs
 	exerciseIDsQuery := `
 		SELECT DISTINCT exercise_id FROM workout_exercise WHERE workout_id = ?
 		UNION
 		SELECT DISTINCT exercise_id FROM exercise_log WHERE workout_id = ? AND user_id = ?
 	`
-	
+
 	log.Printf("Query 1: Getting exercise IDs")
 	log.Printf("SQL: %s", exerciseIDsQuery)
 	log.Printf("Params: workoutID=%d, workoutID=%d, userID=%d", workoutID, workoutID, userID)
@@ -162,20 +162,38 @@ func (s *ExerciseLogService) GetWorkoutIntensityData(ctx context.Context, userID
 	defer rows.Close()
 
 	type Exercise struct {
-		ID          int
-		Type        string
-		WorkoutReps int
-		WorkoutTime int
-		MaxReps     int
-		MaxTime     int
-		Areas       []int
+		ID              int
+		Type            string
+		WorkoutReps     int
+		WorkoutTime     int
+		WorkoutRestTime int
+		WorkoutWeight   int
+		MinRestTime     int
+		MaxReps         int
+		MaxTime         int
+		MaxWeight       int
+		Areas           []int
 	}
 
 	// Helper: does this exercise type use time for intensity (like isometric)?
+	usesRepsIntensity := func(exType string) bool {
+		return exType == string(entities.ExerciseTypeReps) ||
+			exType == string(entities.ExerciseTypeRepsWeighted) ||
+			exType == string(entities.ExerciseTypeTimedReps) ||
+			exType == string(entities.ExerciseTypeTimedRepsWeighted)
+	}
 	usesTimeIntensity := func(exType string) bool {
 		return exType == string(entities.ExerciseTypeIsometric) ||
 			exType == string(entities.ExerciseTypeIsometricWeighted) ||
 			exType == string(entities.ExerciseTypeTimedReps) ||
+			exType == string(entities.ExerciseTypeTimedRepsWeighted)
+	}
+	usesRestIntensity := func(exType string) bool {
+		return true
+	}
+	usesWeightIntensity := func(exType string) bool {
+		return exType == string(entities.ExerciseTypeRepsWeighted) ||
+			exType == string(entities.ExerciseTypeIsometricWeighted) ||
 			exType == string(entities.ExerciseTypeTimedRepsWeighted)
 	}
 
@@ -191,7 +209,7 @@ func (s *ExerciseLogService) GetWorkoutIntensityData(ctx context.Context, userID
 		exercises[id] = &Exercise{ID: id}
 		exerciseIDs = append(exerciseIDs, id)
 	}
-	
+
 	log.Printf("Query 1 Results: Found %d exercise IDs: %v", len(exerciseIDs), exerciseIDs)
 
 	if err := rows.Err(); err != nil {
@@ -217,15 +235,21 @@ func (s *ExerciseLogService) GetWorkoutIntensityData(ctx context.Context, userID
 
 	// Query 2: Get workout configuration (for "workout" column)
 	log.Printf("Query 2: Fetching workout configuration for each exercise...")
-	configQuery := "SELECT COALESCE(reps, 0), COALESCE(time_seconds, 0) FROM workout_exercise WHERE workout_id = ? AND exercise_id = ?"
+	configQuery := `SELECT 
+		COALESCE(reps, 0), COALESCE(time_seconds, 0), COALESCE(weight, 0), COALESCE(rest_seconds, 0)
+		FROM workout_exercise 
+		WHERE workout_id = ? AND exercise_id = ?
+	`
 	for _, exID := range exerciseIDs {
-		var reps, time int
+		var reps, time, weight, rest int
 		log.Printf("  Querying config for exercise %d (workoutID=%d, exerciseID=%d)", exID, workoutID, exID)
-		err := db.QueryRowContext(ctx, configQuery, workoutID, exID).Scan(&reps, &time)
+		err := db.QueryRowContext(ctx, configQuery, workoutID, exID).Scan(&reps, &time, &weight, &rest)
 		if err == nil {
 			exercises[exID].WorkoutReps = reps
 			exercises[exID].WorkoutTime = time
-			log.Printf("  -> Found: reps=%d, time=%d", reps, time)
+			exercises[exID].WorkoutWeight = weight
+			exercises[exID].WorkoutRestTime = rest
+			log.Printf("  -> Found: reps=%d, time=%d, weight=%d, rest=%d", reps, time, weight, rest)
 		} else {
 			log.Printf("  -> Not found (error: %v) - exercise only in logs", err)
 		}
@@ -241,11 +265,11 @@ func (s *ExerciseLogService) GetWorkoutIntensityData(ctx context.Context, userID
 
 	// Query 3: Get max values for each exercise
 	log.Printf("Query 3: Fetching max logged values for each exercise...")
-	maxQuery := `SELECT MAX(COALESCE(reps, 0)), MAX(COALESCE(time_seconds, 0)) FROM exercise_log WHERE user_id = ? AND exercise_id = ?`
+	maxQuery := `SELECT MAX(COALESCE(reps, 0)), MAX(COALESCE(time_seconds, 0)), MAX(COALESCE(weight, 0)), MIN(COALESCE(rest_seconds, 0)) FROM exercise_log WHERE user_id = ? AND exercise_id = ?`
 	for _, exID := range exerciseIDs {
-		var maxReps, maxTime int
+		var maxReps, maxTime, maxWeight, minRest int
 		log.Printf("  Querying max for exercise %d (userID=%d, exerciseID=%d)", exID, userID, exID)
-		err := db.QueryRowContext(ctx, maxQuery, userID, exID).Scan(&maxReps, &maxTime)
+		err := db.QueryRowContext(ctx, maxQuery, userID, exID).Scan(&maxReps, &maxTime, &maxWeight, &minRest)
 		if err != nil {
 			log.Printf("  -> Error: %v (exercise might not be logged yet)", err)
 			// Not a fatal error - exercise might not be logged yet
@@ -253,13 +277,15 @@ func (s *ExerciseLogService) GetWorkoutIntensityData(ctx context.Context, userID
 		}
 		exercises[exID].MaxReps = maxReps
 		exercises[exID].MaxTime = maxTime
-		log.Printf("  -> Found: max_reps=%d, max_time=%d", maxReps, maxTime)
+		exercises[exID].MaxWeight = maxWeight
+		exercises[exID].MinRestTime = minRest
+		log.Printf("  -> Found: max_reps=%d, max_time=%d, max_weight=%d, min_rest=%d", maxReps, maxTime, maxWeight, minRest)
 	}
 	log.Printf("Query 3 Complete")
 
 	// Query 4: Get exercise areas for all exercises in one query
 	log.Printf("Query 4: Fetching exercise areas for all exercises...")
-	
+
 	// Build placeholders for IN clause
 	placeholders := ""
 	args := make([]interface{}, len(exerciseIDs))
@@ -270,7 +296,7 @@ func (s *ExerciseLogService) GetWorkoutIntensityData(ctx context.Context, userID
 		placeholders += "?"
 		args[i] = id
 	}
-	
+
 	areaQuery := `
 		SELECT DISTINCT em.exercise_id, ea.id
 		FROM exercise_muscle em
@@ -278,10 +304,10 @@ func (s *ExerciseLogService) GetWorkoutIntensityData(ctx context.Context, userID
 		JOIN exercise_area ea ON mea.exercise_area_id = ea.id
 		WHERE em.exercise_id IN (` + placeholders + `)
 	`
-	
+
 	log.Printf("  Query: %s", areaQuery)
 	log.Printf("  Exercise IDs: %v", exerciseIDs)
-	
+
 	areaRows, err := db.QueryContext(ctx, areaQuery, args...)
 	if err != nil {
 		log.Printf("  -> Error: %v", err)
@@ -293,7 +319,7 @@ func (s *ExerciseLogService) GetWorkoutIntensityData(ctx context.Context, userID
 				exercises[exerciseID].Areas = append(exercises[exerciseID].Areas, areaID)
 			}
 		}
-		
+
 		// Log results
 		for _, exID := range exerciseIDs {
 			log.Printf("  Exercise %d -> %d areas: %v", exID, len(exercises[exID].Areas), exercises[exID].Areas)
@@ -308,7 +334,9 @@ func (s *ExerciseLogService) GetWorkoutIntensityData(ctx context.Context, userID
 		SELECT 
 			CAST((julianday('now') - julianday(logged_when)) / 7 AS INTEGER) as week_offset,
 			COALESCE(reps, 0),
-			COALESCE(time_seconds, 0)
+			COALESCE(time_seconds, 0),
+			COALESCE(weight, 0),
+			COALESCE(rest_seconds, 0)
 		FROM exercise_log
 		WHERE user_id = ? AND exercise_id = ?
 			AND julianday('now') - julianday(logged_when) <= 35
@@ -329,8 +357,8 @@ func (s *ExerciseLogService) GetWorkoutIntensityData(ctx context.Context, userID
 		logCount := 0
 		weekCounts := make(map[int]int)
 		for weekRows.Next() {
-			var weekOffset, reps, time int
-			if err := weekRows.Scan(&weekOffset, &reps, &time); err != nil {
+			var weekOffset, reps, time, weight, rest int
+			if err := weekRows.Scan(&weekOffset, &reps, &time, &weight, &rest); err != nil {
 				log.Printf("  -> Scan error: %v", err)
 				continue
 			}
@@ -339,17 +367,30 @@ func (s *ExerciseLogService) GetWorkoutIntensityData(ctx context.Context, userID
 			}
 
 			ex := exercises[exID]
-			var intensity float64
-			if usesTimeIntensity(ex.Type) {
-				// Time-based types: use time for intensity
-				if ex.MaxTime > 0 && time > 0 {
-					intensity = float64(time) / float64(ex.MaxTime) * 100
-				}
-			} else {
-				// Reps-based types: use reps for intensity
-				if ex.MaxReps > 0 && reps > 0 {
-					intensity = float64(reps) / float64(ex.MaxReps) * 100
-				}
+			var intensity float64 = 0
+			var intensityCounts int = 0
+			if usesRepsIntensity(ex.Type) && ex.MaxReps > 0 && reps > 0 {
+				intensity += float64(reps) / float64(ex.MaxReps) * 100
+				intensityCounts += 1
+				log.Printf("    Week %d: reps=%d, intensity=%.1f%%", weekOffset, reps, intensity)
+			}
+			if usesTimeIntensity(ex.Type) && ex.MaxTime > 0 && time > 0 {
+				intensity += float64(time) / float64(ex.MaxTime) * 100
+				intensityCounts += 1
+				log.Printf("    Week %d: time=%d, intensity=%.1f%%", weekOffset, time, intensity)
+			}
+			if usesWeightIntensity(ex.Type) && ex.MaxWeight > 0 && weight > 0 {
+				intensity += float64(weight) / float64(ex.MaxWeight) * 100
+				intensityCounts += 1
+				log.Printf("    Week %d: weight=%d, intensity=%.1f%%", weekOffset, weight, intensity)
+			}
+			if usesRestIntensity(ex.Type) && ex.MinRestTime > 0 && rest > 0 {
+				intensity += (float64(ex.MinRestTime) / float64(rest)) * 100
+				intensityCounts += 1
+				log.Printf("    Week %d: rest=%d, minRest=%d, intensity=%.1f%%", weekOffset, rest, ex.MinRestTime, intensity)
+			}
+			if intensityCounts > 0 {
+				intensity /= float64(intensityCounts)
 			}
 
 			weeklyData[exID][weekOffset] = append(weeklyData[exID][weekOffset], intensity)
@@ -454,23 +495,26 @@ func (s *ExerciseLogService) GetWorkoutIntensityData(ctx context.Context, userID
 				continue
 			}
 
-			var intensity float64
-			if usesTimeIntensity(ex.Type) {
-				// Time-based types: use time for intensity
-				if ex.MaxTime > 0 && ex.WorkoutTime > 0 {
-					intensity = float64(ex.WorkoutTime) / float64(ex.MaxTime) * 100
-					log.Printf("    Exercise %d (time-based): workout_time=%d, max_time=%d, intensity=%.1f%%", ex.ID, ex.WorkoutTime, ex.MaxTime, intensity)
-				} else {
-					log.Printf("    Exercise %d (time-based): no workout time config or max values", ex.ID)
-				}
-			} else {
-				// Reps-based types: use reps for intensity
-				if ex.MaxReps > 0 && ex.WorkoutReps > 0 {
-					intensity = float64(ex.WorkoutReps) / float64(ex.MaxReps) * 100
-					log.Printf("    Exercise %d (reps-based): workout_reps=%d, max_reps=%d, intensity=%.1f%%", ex.ID, ex.WorkoutReps, ex.MaxReps, intensity)
-				} else {
-					log.Printf("    Exercise %d (reps-based): no workout reps config or max values", ex.ID)
-				}
+			var intensity float64 = 0
+			var intensityCounts int = 0
+			if usesRepsIntensity(ex.Type) && ex.MaxReps > 0 && ex.WorkoutReps > 0 {
+				intensity += float64(ex.WorkoutReps) / float64(ex.MaxReps) * 100
+				intensityCounts += 1
+			}
+			if usesTimeIntensity(ex.Type) && ex.MaxTime > 0 && ex.WorkoutTime > 0 {
+				intensity += float64(ex.WorkoutTime) / float64(ex.MaxTime) * 100
+				intensityCounts += 1
+			}
+			if usesWeightIntensity(ex.Type) && ex.MaxWeight > 0 && ex.WorkoutWeight > 0 {
+				intensity += float64(ex.WorkoutWeight) / float64(ex.MaxWeight) * 100
+				intensityCounts += 1
+			}
+			if usesRestIntensity(ex.Type) && ex.MinRestTime > 0 && ex.WorkoutRestTime > 0 {
+				intensity += (float64(ex.MinRestTime) / float64(ex.WorkoutRestTime)) * 100
+				intensityCounts += 1
+			}
+			if intensityCounts > 0 {
+				intensity /= float64(intensityCounts)
 			}
 
 			if intensity > 0 {
@@ -697,7 +741,7 @@ func (s *ExerciseLogService) DeleteExerciseLog(ctx context.Context, id int, user
 	if err != nil {
 		return fmt.Errorf("exercise log not found: %w", err)
 	}
-	
+
 	// Verify ownership
 	if logEntry.UserID != userID {
 		return fmt.Errorf("unauthorized: exercise log does not belong to user")
