@@ -333,13 +333,14 @@ func (s *ExerciseLogService) GetWorkoutIntensityData(ctx context.Context, userID
 	weekQuery := `
 		SELECT 
 			CAST((julianday('now') - julianday(logged_when)) / 7 AS INTEGER) as week_offset,
-			COALESCE(reps, 0),
-			COALESCE(time_seconds, 0),
-			COALESCE(weight, 0),
-			COALESCE(rest_seconds, 0)
+			COALESCE(AVG(reps),0),
+			COALESCE(AVG(time_seconds),0),
+			COALESCE(AVG(weight),0),
+			COALESCE(AVG(rest_seconds),0)
 		FROM exercise_log
 		WHERE user_id = ? AND exercise_id = ?
 			AND julianday('now') - julianday(logged_when) <= 35
+		GROUP BY week_offset
 	`
 
 	for _, exID := range exerciseIDs {
@@ -357,7 +358,8 @@ func (s *ExerciseLogService) GetWorkoutIntensityData(ctx context.Context, userID
 		logCount := 0
 		weekCounts := make(map[int]int)
 		for weekRows.Next() {
-			var weekOffset, reps, time, weight, rest int
+			var weekOffset int
+			var reps, time, weight, rest float64
 			if err := weekRows.Scan(&weekOffset, &reps, &time, &weight, &rest); err != nil {
 				log.Printf("  -> Scan error: %v", err)
 				continue
