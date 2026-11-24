@@ -32,4 +32,3 @@ func WithTransaction(db *sql.DB, handler gin.HandlerFunc) gin.HandlerFunc {
 		handler,
 	)
 }
-

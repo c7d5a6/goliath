@@ -28,7 +28,7 @@ func (r *WorkoutExerciseRepository) GetAllForWorkout(ctx context.Context, workou
 	if err != nil {
 		return nil, err
 	}
-	
+
 	rows, err := executor.QueryContext(ctx, `
 		SELECT 
 			we.id, we.version, we.created_when, we.created_by, we.modified_when, we.modified_by,
@@ -66,7 +66,7 @@ func (r *WorkoutExerciseRepository) GetByID(ctx context.Context, id int) (*entit
 	if err != nil {
 		return nil, err
 	}
-	
+
 	row := executor.QueryRowContext(ctx, `
 		SELECT 
 			we.id, we.version, we.created_when, we.created_by, we.modified_when, we.modified_by,
@@ -76,7 +76,7 @@ func (r *WorkoutExerciseRepository) GetByID(ctx context.Context, id int) (*entit
 		JOIN exercise e ON we.exercise_id = e.id
 		WHERE we.id = ?
 	`, id)
-	
+
 	var we entities.WorkoutExercise
 	var createdWhen, modifiedWhen string
 	err = row.Scan(
@@ -104,14 +104,14 @@ func (r *WorkoutExerciseRepository) GetByID(ctx context.Context, id int) (*entit
 
 	we.CreatedWhen, _ = time.Parse("2006-01-02 15:04:05", createdWhen)
 	we.ModifiedWhen, _ = time.Parse("2006-01-02 15:04:05", modifiedWhen)
-	
+
 	return &we, nil
 }
 
 // Create creates a new workout exercise
 func (r *WorkoutExerciseRepository) Create(ctx context.Context, workoutID int, exerciseID int, position int, sets *int, reps *int, timeSeconds *int, weight *float64, restSeconds *int, notes *string) (int64, error) {
 	log.Printf("Starting to create workout exercise for workout %d, exercise %d", workoutID, exerciseID)
-	
+
 	// Get user from context
 	user, hasUser := middleware.GetUserFromContext(ctx)
 	if !hasUser {
@@ -125,7 +125,7 @@ func (r *WorkoutExerciseRepository) Create(ctx context.Context, workoutID int, e
 	}
 
 	log.Printf("Creating workout exercise with user %s", user.Email)
-	
+
 	// Insert workout exercise
 	now := time.Now().Format("2006-01-02 15:04:05")
 	result, err := executor.ExecContext(ctx, `
@@ -148,7 +148,7 @@ func (r *WorkoutExerciseRepository) Create(ctx context.Context, workoutID int, e
 // Update updates an existing workout exercise
 func (r *WorkoutExerciseRepository) Update(ctx context.Context, id int, position int, sets *int, reps *int, timeSeconds *int, weight *float64, restSeconds *int, notes *string) error {
 	log.Printf("Starting to update workout exercise %d", id)
-	
+
 	// Get user from context
 	user, hasUser := middleware.GetUserFromContext(ctx)
 	if !hasUser {
@@ -162,7 +162,7 @@ func (r *WorkoutExerciseRepository) Update(ctx context.Context, id int, position
 	}
 
 	log.Printf("Updating workout exercise with user %s", user.Email)
-	
+
 	// Update workout exercise
 	now := time.Now().Format("2006-01-02 15:04:05")
 	_, err = executor.ExecContext(ctx, `

@@ -28,7 +28,7 @@ func (r *ExerciseLogRepository) GetAll(ctx context.Context, userID int, limit in
 	if err != nil {
 		return nil, err
 	}
-	
+
 	rows, err := executor.QueryContext(ctx, `
 		SELECT 
 			el.id, el.version, el.created_when, el.created_by, el.modified_when, el.modified_by,
@@ -67,7 +67,7 @@ func (r *ExerciseLogRepository) GetByExerciseID(ctx context.Context, userID int,
 	if err != nil {
 		return nil, err
 	}
-	
+
 	rows, err := executor.QueryContext(ctx, `
 		SELECT 
 			el.id, el.version, el.created_when, el.created_by, el.modified_when, el.modified_by,
@@ -106,7 +106,7 @@ func (r *ExerciseLogRepository) GetByWorkoutID(ctx context.Context, userID int, 
 	if err != nil {
 		return nil, err
 	}
-	
+
 	rows, err := executor.QueryContext(ctx, `
 		SELECT 
 			el.id, el.version, el.created_when, el.created_by, el.modified_when, el.modified_by,
@@ -145,7 +145,7 @@ func (r *ExerciseLogRepository) GetByID(ctx context.Context, id int, userID int)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	row := executor.QueryRowContext(ctx, `
 		SELECT 
 			el.id, el.version, el.created_when, el.created_by, el.modified_when, el.modified_by,
@@ -155,7 +155,7 @@ func (r *ExerciseLogRepository) GetByID(ctx context.Context, id int, userID int)
 		JOIN exercise e ON el.exercise_id = e.id
 		WHERE el.id = ? AND el.user_id = ?
 	`, id, userID)
-	
+
 	var el entities.ExerciseLog
 	var createdWhen, modifiedWhen, loggedWhen string
 	err = row.Scan(
@@ -186,7 +186,7 @@ func (r *ExerciseLogRepository) GetByID(ctx context.Context, id int, userID int)
 	el.CreatedWhen, _ = time.Parse("2006-01-02 15:04:05", createdWhen)
 	el.ModifiedWhen, _ = time.Parse("2006-01-02 15:04:05", modifiedWhen)
 	el.LoggedWhen, _ = time.Parse("2006-01-02 15:04:05", loggedWhen)
-	
+
 	return &el, nil
 }
 
@@ -302,24 +302,24 @@ func (r *ExerciseLogRepository) GetWorkoutIntensityData(ctx context.Context, use
 
 	// Result: map[exercise_id]map[week_offset]intensity
 	result := make(map[int]map[string]float64)
-	
+
 	for rows.Next() {
 		var exerciseID, weekOffset int
 		var intensity float64
-		
+
 		if err := rows.Scan(&exerciseID, &weekOffset, &intensity); err != nil {
 			return nil, err
 		}
-		
+
 		if result[exerciseID] == nil {
 			result[exerciseID] = make(map[string]float64)
 		}
-		
+
 		weekLabel := "current"
 		if weekOffset > 0 {
-			weekLabel = "week_" + string(rune('0' + weekOffset))
+			weekLabel = "week_" + string(rune('0'+weekOffset))
 		}
-		
+
 		result[exerciseID][weekLabel] = intensity
 	}
 
@@ -329,7 +329,7 @@ func (r *ExerciseLogRepository) GetWorkoutIntensityData(ctx context.Context, use
 // Create creates a new exercise log
 func (r *ExerciseLogRepository) Create(ctx context.Context, userID int, workoutID *int, exerciseID int, position int, sets *int, reps *int, timeSeconds *int, weight *float64, restSeconds *int, notes *string) (int64, error) {
 	log.Printf("Starting to create exercise log for exercise %d, user %d", exerciseID, userID)
-	
+
 	// Get user from context
 	user, hasUser := middleware.GetUserFromContext(ctx)
 	if !hasUser {
@@ -343,7 +343,7 @@ func (r *ExerciseLogRepository) Create(ctx context.Context, userID int, workoutI
 	}
 
 	log.Printf("Creating exercise log with user %s", user.Email)
-	
+
 	// Insert exercise log
 	now := time.Now().Format("2006-01-02 15:04:05")
 	result, err := executor.ExecContext(ctx, `
@@ -366,7 +366,7 @@ func (r *ExerciseLogRepository) Create(ctx context.Context, userID int, workoutI
 // Update updates an existing exercise log
 func (r *ExerciseLogRepository) Update(ctx context.Context, id int, sets *int, reps *int, timeSeconds *int, weight *float64, restSeconds *int, notes *string) error {
 	log.Printf("Starting to update exercise log %d", id)
-	
+
 	// Get user from context
 	user, hasUser := middleware.GetUserFromContext(ctx)
 	if !hasUser {
@@ -380,7 +380,7 @@ func (r *ExerciseLogRepository) Update(ctx context.Context, id int, sets *int, r
 	}
 
 	log.Printf("Updating exercise log with user %s", user.Email)
-	
+
 	// Update exercise log
 	now := time.Now().Format("2006-01-02 15:04:05")
 	_, err = executor.ExecContext(ctx, `

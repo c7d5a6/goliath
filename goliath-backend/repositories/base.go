@@ -25,4 +25,3 @@ func (r *BaseRepository) GetExecutor(ctx context.Context) (middleware.DBExecutor
 	}
 	return tx, nil
 }
-

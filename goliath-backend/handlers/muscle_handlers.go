@@ -81,4 +81,3 @@ func (h *MuscleHandlers) GetExerciseAreas(c *gin.Context) {
 		"count":          len(exerciseAreas),
 	})
 }
-

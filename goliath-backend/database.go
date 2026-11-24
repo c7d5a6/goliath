@@ -87,7 +87,7 @@ func validateApplicationID(db *sql.DB, isNewDB bool) error {
 	} else {
 		// Existing database: validate application_id
 		if currentAppID != applicationID {
-			return fmt.Errorf("database application_id mismatch: expected 0x%X, got 0x%X - this database was not created by Goliath", 
+			return fmt.Errorf("database application_id mismatch: expected 0x%X, got 0x%X - this database was not created by Goliath",
 				applicationID, currentAppID)
 		}
 		log.Printf("Verified application_id: 0x%X", currentAppID)
@@ -99,8 +99,8 @@ func validateApplicationID(db *sql.DB, isNewDB bool) error {
 // configurePragmas sets SQLite pragma flags for optimal performance and reliability
 func configurePragmas(db *sql.DB) error {
 	pragmas := map[string]string{
-		"journal_mode": "WAL",            // Write-Ahead Logging for better concurrency
-		"foreign_keys": "ON",             // Enable foreign key constraints
+		"journal_mode": "WAL", // Write-Ahead Logging for better concurrency
+		"foreign_keys": "ON",  // Enable foreign key constraints
 	}
 
 	for pragma, value := range pragmas {

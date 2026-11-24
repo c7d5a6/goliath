@@ -118,4 +118,3 @@ func (r *ExerciseAreaRepository) GetAllForMuscles(ctx context.Context) (map[int]
 
 	return muscleAreasMap, nil
 }
-

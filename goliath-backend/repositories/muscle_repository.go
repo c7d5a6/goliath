@@ -52,4 +52,3 @@ func (r *MuscleRepository) GetAll(ctx context.Context) ([]entities.Muscle, error
 
 	return muscles, nil
 }
-

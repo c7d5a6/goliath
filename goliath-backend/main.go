@@ -68,16 +68,16 @@ func main() {
 	// Apply global middleware in order:
 	// 1. CORS - handle cross-origin requests
 	r.Use(middleware.CORS())
-	
+
 	// 2. Firebase JWT (optional) - extract user info from token if present
 	r.Use(middleware.JWT(middleware.JWTConfig{
 		AuthClient: authClient,
 		Required:   false, // Allow requests without JWT
 	}))
-	
+
 	// 3. User Loader - load full user details if JWT was present
 	r.Use(middleware.UserLoader(db))
-	
+
 	// 4. Transaction - wrap ALL requests in database transaction
 	// Required because all repository operations now require a transaction
 	r.Use(middleware.Transaction(db))
@@ -110,21 +110,21 @@ func main() {
 	{
 		// User info
 		auth.GET("/me", userHandlers.GetMe)
-		
+
 		// Workout routes - users can only access their own workouts
 		auth.GET("/workouts", workoutHandlers.GetWorkouts)
 		auth.GET("/workouts/:id", workoutHandlers.GetWorkout)
 		auth.POST("/workouts", workoutHandlers.CreateWorkout)
 		auth.PUT("/workouts/:id", workoutHandlers.UpdateWorkout)
 		auth.DELETE("/workouts/:id", workoutHandlers.DeleteWorkout)
-		
+
 		// Workout exercise routes - manage exercises within workouts
 		auth.GET("/workouts/:id/exercises", workoutHandlers.GetWorkoutExercises)
 		auth.POST("/workouts/:id/exercises", workoutHandlers.AddExerciseToWorkout)
 		auth.PUT("/workouts/:id/exercises/:exercise_id", workoutHandlers.UpdateWorkoutExercise)
 		auth.DELETE("/workouts/:id/exercises/:exercise_id", workoutHandlers.RemoveExerciseFromWorkout)
 		auth.GET("/workouts/:id/exercise-areas", workoutHandlers.GetWorkoutExerciseAreas)
-		
+
 		// Exercise log routes - track completed exercises
 		auth.GET("/exercise-logs", exerciseLogHandlers.GetExerciseLogs)
 		auth.GET("/exercise-logs/calendar/year", exerciseLogHandlers.GetCalendarYear)
@@ -147,7 +147,7 @@ func main() {
 		// Create and update exercise requires admin role (transaction is already global)
 		admin.POST("/exercises", exerciseHandlers.CreateExercise)
 		admin.PUT("/exercises/:id", exerciseHandlers.UpdateExercise)
-		
+
 		// User management - admin only
 		admin.GET("/users", userHandlers.GetUsers)
 	}
@@ -171,4 +171,3 @@ func repeatChar(char rune, count int) string {
 	}
 	return string(result)
 }
-

@@ -133,7 +133,7 @@ type UpdateExerciseInput struct {
 // UpdateExercise updates an existing exercise with validation
 func (s *ExerciseService) UpdateExercise(ctx context.Context, id int, input UpdateExerciseInput) error {
 	log.Printf("Service exercise update %s", input.Name)
-	
+
 	// Validate exercise type
 	validType := false
 	for _, t := range s.GetExerciseTypes() {

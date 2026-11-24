@@ -70,4 +70,3 @@ func (s *MuscleService) GetAllRegions(ctx context.Context) ([]entities.Region, e
 func (s *MuscleService) GetAllExerciseAreas(ctx context.Context) ([]entities.ExerciseArea, error) {
 	return s.exerciseAreaRepo.GetAll(ctx)
 }
-

@@ -55,7 +55,7 @@ type CreateWorkoutInput struct {
 // CreateWorkout creates a new workout for a user
 func (s *WorkoutService) CreateWorkout(ctx context.Context, userID int, input CreateWorkoutInput) (int64, error) {
 	log.Printf("Service: creating workout %s for user %d", input.Name, userID)
-	
+
 	// Create workout
 	workoutID, err := s.workoutRepo.Create(ctx, input.Name, userID)
 	if err != nil {
@@ -73,7 +73,7 @@ type UpdateWorkoutInput struct {
 // UpdateWorkout updates an existing workout with ownership verification
 func (s *WorkoutService) UpdateWorkout(ctx context.Context, id int, userID int, input UpdateWorkoutInput) error {
 	log.Printf("Service: updating workout %d for user %d", id, userID)
-	
+
 	// Check if workout exists and belongs to user
 	workout, err := s.workoutRepo.GetByID(ctx, id)
 	if err != nil {

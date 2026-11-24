@@ -31,7 +31,7 @@ func JWT(config JWTConfig) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Get token from Authorization header
 		authHeader := c.GetHeader("Authorization")
-		
+
 		if authHeader == "" {
 			// No token provided
 			if config.Required {
@@ -107,4 +107,3 @@ func GetFirebaseUIDFromContext(ctx context.Context) (string, bool) {
 	uid, ok := ctx.Value(FirebaseUIDKey).(string)
 	return uid, ok
 }
-

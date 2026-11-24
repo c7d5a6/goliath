@@ -50,4 +50,3 @@ func (r *RegionRepository) GetAll(ctx context.Context) ([]entities.Region, error
 
 	return regions, nil
 }
-

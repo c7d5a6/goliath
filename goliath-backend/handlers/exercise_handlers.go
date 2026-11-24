@@ -82,7 +82,7 @@ func (h *ExerciseHandlers) CreateExercise(c *gin.Context) {
 // GetExercise handles GET /exercises/:id
 func (h *ExerciseHandlers) GetExercise(c *gin.Context) {
 	ctx := c.Request.Context()
-	
+
 	// Parse ID from URL
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
@@ -103,7 +103,7 @@ func (h *ExerciseHandlers) GetExercise(c *gin.Context) {
 // UpdateExercise handles PUT /exercises/:id
 func (h *ExerciseHandlers) UpdateExercise(c *gin.Context) {
 	ctx := c.Request.Context()
-	
+
 	// Parse ID from URL
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)

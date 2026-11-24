@@ -64,13 +64,13 @@ func (r *ExerciseRepository) GetByID(ctx context.Context, id int) (*entities.Exe
 	if err != nil {
 		return nil, err
 	}
-	
+
 	row := executor.QueryRowContext(ctx, `
 		SELECT id, version, created_when, created_by, modified_when, modified_by, name, type
 		FROM exercise
 		WHERE id = ?
 	`, id)
-	
+
 	var exercise entities.Exercise
 	var createdWhen, modifiedWhen string
 	var exerciseType string
@@ -93,7 +93,7 @@ func (r *ExerciseRepository) GetByID(ctx context.Context, id int) (*entities.Exe
 	exercise.Type = entities.ExerciseType(exerciseType)
 	exercise.Muscles = []entities.ExerciseMuscle{}
 	exercise.ExerciseAreas = []entities.ExerciseAreaSummary{}
-	
+
 	return &exercise, nil
 }
 
@@ -103,7 +103,7 @@ func (r *ExerciseRepository) GetExerciseAreasForAllExercises(ctx context.Context
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// This query:
 	// 1. Joins exercise_muscle to get all muscles for exercises
 	// 2. Joins muscle_exercise_area to get exercise areas for those muscles
@@ -239,7 +239,7 @@ type MuscleInput struct {
 // This method requires a transaction to be present in the context (from Transaction middleware)
 func (r *ExerciseRepository) Create(ctx context.Context, name string, exerciseType entities.ExerciseType, muscles []MuscleInput) (int64, error) {
 	log.Printf("Starting to create exercise %s", name)
-	
+
 	// Get user from context
 	user, hasUser := middleware.GetUserFromContext(ctx)
 	if !hasUser {
@@ -253,7 +253,7 @@ func (r *ExerciseRepository) Create(ctx context.Context, name string, exerciseTy
 	}
 
 	log.Printf("Creating exercise with user %s", user.Email)
-	
+
 	// Insert exercise
 	now := time.Now().Format("2006-01-02 15:04:05")
 	result, err := executor.ExecContext(ctx, `
@@ -288,7 +288,7 @@ func (r *ExerciseRepository) Create(ctx context.Context, name string, exerciseTy
 // This method requires a transaction to be present in the context (from Transaction middleware)
 func (r *ExerciseRepository) Update(ctx context.Context, id int, name string, exerciseType entities.ExerciseType, muscles []MuscleInput) error {
 	log.Printf("Starting to update exercise %d", id)
-	
+
 	// Get user from context
 	user, hasUser := middleware.GetUserFromContext(ctx)
 	if !hasUser {
@@ -302,7 +302,7 @@ func (r *ExerciseRepository) Update(ctx context.Context, id int, name string, ex
 	}
 
 	log.Printf("Updating exercise with user %s", user.Email)
-	
+
 	// Update exercise
 	now := time.Now().Format("2006-01-02 15:04:05")
 	_, err = executor.ExecContext(ctx, `

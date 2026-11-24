@@ -52,4 +52,3 @@ func (r *MuscleGroupRepository) GetAll(ctx context.Context) ([]entities.MuscleGr
 
 	return muscleGroups, nil
 }
-

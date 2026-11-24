@@ -19,7 +19,7 @@ func UserLoader(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Try to get Firebase UID from context (set by JWT middleware)
 		firebaseUID, hasUID := GetFirebaseUIDFromContext(c.Request.Context())
-		
+
 		if !hasUID {
 			// No Firebase UID in context, skip loading
 			c.Next()
@@ -80,14 +80,14 @@ func loadUserByFirebaseUID(ctx context.Context, db *sql.DB, firebaseUID string) 
 		&user.Role,
 		&user.FirebaseUID,
 	)
-	
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil // User not found
 		}
 		return nil, err
 	}
-	
+
 	log.Printf("Loaded user: ID=%d, Email=%s, Role=%s, Firebase UID=%s", user.ID, user.Email, user.Role, firebaseUID)
 	return &user, nil
 }
@@ -99,11 +99,11 @@ func createUserFromFirebase(ctx context.Context, db *sql.DB, firebaseUID, email 
 		INSERT INTO user (email, role, firebase_uid, created_by, modified_by)
 		VALUES (?, 'USER', ?, 'system', 'system')
 	`, email, firebaseUID)
-	
+
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Load and return the newly created user
 	return loadUserByFirebaseUID(ctx, db, firebaseUID)
 }
@@ -136,13 +136,13 @@ func RequireRole(role string) gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		
+
 		if user.Role != role {
 			c.JSON(403, gin.H{"error": "Insufficient permissions"})
 			c.Abort()
 			return
 		}
-		
+
 		c.Next()
 	}
 }
@@ -161,4 +161,3 @@ func IsAdmin(user *entities.User) bool {
 func IsUser(user *entities.User) bool {
 	return user != nil && user.Role == "USER"
 }
-

@@ -159,4 +159,3 @@ func (r *UserRepository) GetByFirebaseUID(ctx context.Context, firebaseUID strin
 
 	return &user, nil
 }
-

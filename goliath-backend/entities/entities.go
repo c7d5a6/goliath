@@ -24,9 +24,9 @@ type Region struct {
 // MuscleGroup represents a group of muscles within a region
 type MuscleGroup struct {
 	BaseEntity
-	Name         string `json:"name" db:"name"`
-	RegionID     int    `json:"region_id" db:"region_id"`
-	RegionName   string `json:"region_name,omitempty" db:"region_name"` // For JOIN queries
+	Name       string `json:"name" db:"name"`
+	RegionID   int    `json:"region_id" db:"region_id"`
+	RegionName string `json:"region_name,omitempty" db:"region_name"` // For JOIN queries
 }
 
 // ExerciseArea represents a type of exercise movement
@@ -69,10 +69,10 @@ const (
 // Exercise represents a specific exercise
 type Exercise struct {
 	BaseEntity
-	Name          string                 `json:"name" db:"name"`
-	Type          ExerciseType           `json:"type" db:"type"`
-	Muscles       []ExerciseMuscle       `json:"muscles,omitempty"`        // For many-to-many relationship with percentages
-	ExerciseAreas []ExerciseAreaSummary  `json:"exercise_areas,omitempty"` // Grouped exercise areas
+	Name          string                `json:"name" db:"name"`
+	Type          ExerciseType          `json:"type" db:"type"`
+	Muscles       []ExerciseMuscle      `json:"muscles,omitempty"`        // For many-to-many relationship with percentages
+	ExerciseAreas []ExerciseAreaSummary `json:"exercise_areas,omitempty"` // Grouped exercise areas
 }
 
 // ExerciseAreaSummary represents an exercise area for an exercise with aggregated percentage
@@ -416,20 +416,20 @@ func ScanExerciseLog(rows *sql.Rows) (*ExerciseLog, error) {
 // parseTimestamp tries multiple timestamp formats commonly used by SQLite
 func parseTimestamp(s string) time.Time {
 	formats := []string{
-		"2006-01-02 15:04:05",           // Format we insert
-		"2006-01-02T15:04:05Z",          // ISO 8601 UTC
-		"2006-01-02T15:04:05.999Z",      // ISO 8601 UTC with milliseconds
-		"2006-01-02T15:04:05.999999Z",   // ISO 8601 UTC with microseconds
-		"2006-01-02 15:04:05.999999",    // SQLite datetime with microseconds
-		time.RFC3339,                     // Standard Go format
+		"2006-01-02 15:04:05",         // Format we insert
+		"2006-01-02T15:04:05Z",        // ISO 8601 UTC
+		"2006-01-02T15:04:05.999Z",    // ISO 8601 UTC with milliseconds
+		"2006-01-02T15:04:05.999999Z", // ISO 8601 UTC with microseconds
+		"2006-01-02 15:04:05.999999",  // SQLite datetime with microseconds
+		time.RFC3339,                  // Standard Go format
 	}
-	
+
 	for _, format := range formats {
 		if t, err := time.Parse(format, s); err == nil {
 			return t
 		}
 	}
-	
+
 	// If all parsing fails, return zero time
 	return time.Time{}
 }

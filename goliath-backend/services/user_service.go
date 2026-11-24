@@ -38,4 +38,3 @@ func (s *UserService) GetUserByEmail(ctx context.Context, email string) (*entiti
 func (s *UserService) GetUserByFirebaseUID(ctx context.Context, firebaseUID string) (*entities.User, error) {
 	return s.userRepo.GetByFirebaseUID(ctx, firebaseUID)
 }
-

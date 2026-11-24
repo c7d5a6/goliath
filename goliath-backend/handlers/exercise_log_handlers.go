@@ -40,7 +40,7 @@ func (h *ExerciseLogHandlers) GetExerciseLogs(c *gin.Context) {
 	// Parse pagination parameters
 	limitStr := c.DefaultQuery("limit", "50")
 	offsetStr := c.DefaultQuery("offset", "0")
-	
+
 	limit, _ := strconv.Atoi(limitStr)
 	offset, _ := strconv.Atoi(offsetStr)
 
@@ -78,7 +78,7 @@ func (h *ExerciseLogHandlers) GetExerciseLogsByExercise(c *gin.Context) {
 	// Parse pagination parameters
 	limitStr := c.DefaultQuery("limit", "50")
 	offsetStr := c.DefaultQuery("offset", "0")
-	
+
 	limit, _ := strconv.Atoi(limitStr)
 	offset, _ := strconv.Atoi(offsetStr)
 
@@ -116,7 +116,7 @@ func (h *ExerciseLogHandlers) GetExerciseLogsByWorkout(c *gin.Context) {
 	// Parse pagination parameters
 	limitStr := c.DefaultQuery("limit", "50")
 	offsetStr := c.DefaultQuery("offset", "0")
-	
+
 	limit, _ := strconv.Atoi(limitStr)
 	offset, _ := strconv.Atoi(offsetStr)
 
@@ -285,7 +285,7 @@ func (h *ExerciseLogHandlers) GetWorkoutIntensity(c *gin.Context) {
 
 	// Get the DB executor (transaction if available, otherwise raw DB)
 	dbExecutor := middleware.GetDBFromContext(ctx, h.db)
-	
+
 	result, err := h.exerciseLogService.GetWorkoutIntensityData(ctx, user.ID, workoutID, dbExecutor)
 	if err != nil {
 		log.Printf("Error calculating intensity: %v", err)
