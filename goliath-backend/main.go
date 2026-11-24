@@ -2,8 +2,13 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"goliath/handlers"
 	"goliath/middleware"
@@ -15,11 +20,21 @@ import (
 	"google.golang.org/api/option"
 )
 
+// shutdownTimeout bounds how long in-flight requests may finish after a stop signal.
+const shutdownTimeout = 10 * time.Second
+
 func main() {
+	if err := run(); err != nil {
+		log.Fatalf("goliath: %v", err)
+	}
+}
+
+// run wires dependencies and serves until shutdown, so deferred cleanup always runs.
+func run() error {
 	// Initialize database
 	db, err := InitDB("./goliath.db")
 	if err != nil {
-		log.Fatalf("Failed to initialize database: %v", err)
+		return fmt.Errorf("initialize database: %w", err)
 	}
 	defer db.Close()
 
@@ -27,13 +42,13 @@ func main() {
 	opt := option.WithCredentialsFile("./goliath-firebase.json")
 	app, err := firebase.NewApp(context.Background(), nil, opt)
 	if err != nil {
-		log.Fatalf("Error initializing Firebase app: %v", err)
+		return fmt.Errorf("initialize Firebase app: %w", err)
 	}
 
 	// Get Firebase Auth client
 	authClient, err := app.Auth(context.Background())
 	if err != nil {
-		log.Fatalf("Error getting Firebase Auth client: %v", err)
+		return fmt.Errorf("get Firebase Auth client: %w", err)
 	}
 	log.Println("Firebase initialized successfully")
 
@@ -157,22 +172,46 @@ func main() {
 		admin.GET("/users", userHandlers.GetUsers)
 	}
 
-	// Get port from environment or use default
-	port := os.Getenv("PORT")
+	return serve(r, os.Getenv("PORT"))
+}
+
+// serve runs the router until SIGINT or SIGTERM, then drains in-flight requests.
+// It listens on loopback only: the reverse proxy is the sole public entry point.
+func serve(handler http.Handler, port string) error {
 	if port == "" {
 		port = "8080"
 	}
 
-	log.Printf("Server starting on :%s...\n", port)
-	if err := r.Run(":" + port); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
+	srv := &http.Server{
+		Addr:              "127.0.0.1:" + port,
+		Handler:           handler,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       60 * time.Second,
+		MaxHeaderBytes:    1 << 16,
 	}
-}
 
-func repeatChar(char rune, count int) string {
-	result := make([]byte, count)
-	for i := 0; i < count; i++ {
-		result[i] = byte(char)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	errc := make(chan error, 1)
+	go func() {
+		log.Printf("Server starting on %s...", srv.Addr)
+		errc <- srv.ListenAndServe()
+	}()
+
+	select {
+	case err := <-errc:
+		return fmt.Errorf("listen on %s: %w", srv.Addr, err)
+	case <-ctx.Done():
 	}
-	return string(result)
+
+	log.Println("Shutting down...")
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	defer cancel()
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		return fmt.Errorf("shut down server: %w", err)
+	}
+	return nil
 }
