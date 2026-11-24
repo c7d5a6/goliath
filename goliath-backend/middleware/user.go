@@ -44,14 +44,23 @@ func UserLoader(db *sql.DB) gin.HandlerFunc {
 
 		if user == nil {
 			// User not found in database - create them
-			log.Printf("User not found for Firebase UID: %s, creating new user with email: %s", firebaseUID, email)
+			log.Printf(
+				"User not found for Firebase UID: %s, creating new user with email: %s",
+				firebaseUID,
+				email,
+			)
 			user, err = createUserFromFirebase(c.Request.Context(), db, firebaseUID, email)
 			if err != nil {
 				log.Printf("Failed to create user: %v", err)
 				c.Next()
 				return
 			}
-			log.Printf("Created new user: ID=%d, Email=%s, Firebase UID=%s", user.ID, user.Email, firebaseUID)
+			log.Printf(
+				"Created new user: ID=%d, Email=%s, Firebase UID=%s",
+				user.ID,
+				user.Email,
+				firebaseUID,
+			)
 		}
 
 		// Add full user object to context
@@ -63,10 +72,15 @@ func UserLoader(db *sql.DB) gin.HandlerFunc {
 }
 
 // loadUserByFirebaseUID loads a user from the database by Firebase UID
-func loadUserByFirebaseUID(ctx context.Context, db *sql.DB, firebaseUID string) (*entities.User, error) {
+func loadUserByFirebaseUID(
+	ctx context.Context,
+	db *sql.DB,
+	firebaseUID string,
+) (*entities.User, error) {
 	var user entities.User
 	err := db.QueryRowContext(ctx, `
-		SELECT id, version, created_when, created_by, modified_when, modified_by, email, role, firebase_uid
+		SELECT id, version, created_when, created_by, modified_when, modified_by, email, role,
+			firebase_uid
 		FROM user 
 		WHERE firebase_uid = ?
 	`, firebaseUID).Scan(
@@ -88,12 +102,23 @@ func loadUserByFirebaseUID(ctx context.Context, db *sql.DB, firebaseUID string) 
 		return nil, err
 	}
 
-	log.Printf("Loaded user: ID=%d, Email=%s, Role=%s, Firebase UID=%s", user.ID, user.Email, user.Role, firebaseUID)
+	log.Printf(
+		"Loaded user: ID=%d, Email=%s, Role=%s, Firebase UID=%s",
+		user.ID,
+		user.Email,
+		user.Role,
+		firebaseUID,
+	)
 	return &user, nil
 }
 
 // createUserFromFirebase creates a new user in the database from Firebase auth info
-func createUserFromFirebase(ctx context.Context, db *sql.DB, firebaseUID, email string) (*entities.User, error) {
+func createUserFromFirebase(
+	ctx context.Context,
+	db *sql.DB,
+	firebaseUID,
+	email string,
+) (*entities.User, error) {
 	// Insert new user with default USER role
 	_, err := db.ExecContext(ctx, `
 		INSERT INTO user (email, role, firebase_uid, created_by, modified_by)

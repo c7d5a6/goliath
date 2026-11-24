@@ -23,7 +23,12 @@ func NewExerciseLogRepository(db *sql.DB) *ExerciseLogRepository {
 }
 
 // GetAll retrieves all exercise logs for a specific user
-func (r *ExerciseLogRepository) GetAll(ctx context.Context, userID int, limit int, offset int) ([]entities.ExerciseLog, error) {
+func (r *ExerciseLogRepository) GetAll(
+	ctx context.Context,
+	userID int,
+	limit int,
+	offset int,
+) ([]entities.ExerciseLog, error) {
 	executor, err := r.GetExecutor(ctx)
 	if err != nil {
 		return nil, err
@@ -32,7 +37,8 @@ func (r *ExerciseLogRepository) GetAll(ctx context.Context, userID int, limit in
 	rows, err := executor.QueryContext(ctx, `
 		SELECT 
 			el.id, el.version, el.created_when, el.created_by, el.modified_when, el.modified_by,
-			el.user_id, el.workout_id, el.exercise_id, el.logged_when, el.position, el.sets, el.reps, el.time_seconds, el.weight, el.rest_seconds, el.notes,
+			el.user_id, el.workout_id, el.exercise_id, el.logged_when, el.position, el.sets, el.reps,
+				el.time_seconds, el.weight, el.rest_seconds, el.notes,
 			e.name as exercise_name, e.type as exercise_type
 		FROM exercise_log el
 		JOIN exercise e ON el.exercise_id = e.id
@@ -62,7 +68,13 @@ func (r *ExerciseLogRepository) GetAll(ctx context.Context, userID int, limit in
 }
 
 // GetByExerciseID retrieves all logs for a specific exercise for a specific user
-func (r *ExerciseLogRepository) GetByExerciseID(ctx context.Context, userID int, exerciseID int, limit int, offset int) ([]entities.ExerciseLog, error) {
+func (r *ExerciseLogRepository) GetByExerciseID(
+	ctx context.Context,
+	userID int,
+	exerciseID int,
+	limit int,
+	offset int,
+) ([]entities.ExerciseLog, error) {
 	executor, err := r.GetExecutor(ctx)
 	if err != nil {
 		return nil, err
@@ -71,7 +83,8 @@ func (r *ExerciseLogRepository) GetByExerciseID(ctx context.Context, userID int,
 	rows, err := executor.QueryContext(ctx, `
 		SELECT 
 			el.id, el.version, el.created_when, el.created_by, el.modified_when, el.modified_by,
-			el.user_id, el.workout_id, el.exercise_id, el.logged_when, el.position, el.sets, el.reps, el.time_seconds, el.weight, el.rest_seconds, el.notes,
+			el.user_id, el.workout_id, el.exercise_id, el.logged_when, el.position, el.sets, el.reps,
+				el.time_seconds, el.weight, el.rest_seconds, el.notes,
 			e.name as exercise_name, e.type as exercise_type
 		FROM exercise_log el
 		JOIN exercise e ON el.exercise_id = e.id
@@ -101,7 +114,13 @@ func (r *ExerciseLogRepository) GetByExerciseID(ctx context.Context, userID int,
 }
 
 // GetByWorkoutID retrieves all logs for a specific workout for a specific user (nullable)
-func (r *ExerciseLogRepository) GetByWorkoutID(ctx context.Context, userID int, workoutID int, limit int, offset int) ([]entities.ExerciseLog, error) {
+func (r *ExerciseLogRepository) GetByWorkoutID(
+	ctx context.Context,
+	userID int,
+	workoutID int,
+	limit int,
+	offset int,
+) ([]entities.ExerciseLog, error) {
 	executor, err := r.GetExecutor(ctx)
 	if err != nil {
 		return nil, err
@@ -110,7 +129,8 @@ func (r *ExerciseLogRepository) GetByWorkoutID(ctx context.Context, userID int, 
 	rows, err := executor.QueryContext(ctx, `
 		SELECT 
 			el.id, el.version, el.created_when, el.created_by, el.modified_when, el.modified_by,
-			el.user_id, el.workout_id, el.exercise_id, el.logged_when, el.position, el.sets, el.reps, el.time_seconds, el.weight, el.rest_seconds, el.notes,
+			el.user_id, el.workout_id, el.exercise_id, el.logged_when, el.position, el.sets, el.reps,
+				el.time_seconds, el.weight, el.rest_seconds, el.notes,
 			e.name as exercise_name, e.type as exercise_type
 		FROM exercise_log el
 		JOIN exercise e ON el.exercise_id = e.id
@@ -140,7 +160,11 @@ func (r *ExerciseLogRepository) GetByWorkoutID(ctx context.Context, userID int, 
 }
 
 // GetByID retrieves a single exercise log by ID for a specific user
-func (r *ExerciseLogRepository) GetByID(ctx context.Context, id int, userID int) (*entities.ExerciseLog, error) {
+func (r *ExerciseLogRepository) GetByID(
+	ctx context.Context,
+	id int,
+	userID int,
+) (*entities.ExerciseLog, error) {
 	executor, err := r.GetExecutor(ctx)
 	if err != nil {
 		return nil, err
@@ -149,7 +173,8 @@ func (r *ExerciseLogRepository) GetByID(ctx context.Context, id int, userID int)
 	row := executor.QueryRowContext(ctx, `
 		SELECT 
 			el.id, el.version, el.created_when, el.created_by, el.modified_when, el.modified_by,
-			el.user_id, el.workout_id, el.exercise_id, el.logged_when, el.position, el.sets, el.reps, el.time_seconds, el.weight, el.rest_seconds, el.notes,
+			el.user_id, el.workout_id, el.exercise_id, el.logged_when, el.position, el.sets, el.reps,
+				el.time_seconds, el.weight, el.rest_seconds, el.notes,
 			e.name as exercise_name, e.type as exercise_type
 		FROM exercise_log el
 		JOIN exercise e ON el.exercise_id = e.id
@@ -192,7 +217,11 @@ func (r *ExerciseLogRepository) GetByID(ctx context.Context, id int, userID int)
 
 // GetLatestByWorkoutExercises retrieves the latest log entry per unique exercise
 // for exercises that are either in the given workout or have workout_id = workoutID
-func (r *ExerciseLogRepository) GetLatestByWorkoutExercises(ctx context.Context, userID int, workoutID int) ([]entities.ExerciseLog, error) {
+func (r *ExerciseLogRepository) GetLatestByWorkoutExercises(
+	ctx context.Context,
+	userID int,
+	workoutID int,
+) ([]entities.ExerciseLog, error) {
 	executor, err := r.GetExecutor(ctx)
 	if err != nil {
 		return nil, err
@@ -202,7 +231,8 @@ func (r *ExerciseLogRepository) GetLatestByWorkoutExercises(ctx context.Context,
 		WITH ranked_logs AS (
 			SELECT 
 				el.id, el.version, el.created_when, el.created_by, el.modified_when, el.modified_by,
-				el.user_id, el.workout_id, el.exercise_id, el.logged_when, el.position, el.sets, el.reps, el.time_seconds, el.weight, el.rest_seconds, el.notes,
+				el.user_id, el.workout_id, el.exercise_id, el.logged_when, el.position, el.sets, el.reps,
+					el.time_seconds, el.weight, el.rest_seconds, el.notes,
 				e.name as exercise_name, e.type as exercise_type,
 				ROW_NUMBER() OVER (PARTITION BY el.exercise_id ORDER BY el.logged_when DESC) as rn
 			FROM exercise_log el
@@ -214,7 +244,8 @@ func (r *ExerciseLogRepository) GetLatestByWorkoutExercises(ctx context.Context,
 			)
 		)
 		SELECT id, version, created_when, created_by, modified_when, modified_by,
-			user_id, workout_id, exercise_id, logged_when, position, sets, reps, time_seconds, weight, rest_seconds, notes,
+			user_id, workout_id, exercise_id, logged_when, position, sets, reps, time_seconds, weight,
+				rest_seconds, notes,
 			exercise_name, exercise_type
 		FROM ranked_logs
 		WHERE rn = 1
@@ -242,7 +273,11 @@ func (r *ExerciseLogRepository) GetLatestByWorkoutExercises(ctx context.Context,
 }
 
 // GetWorkoutIntensityData retrieves intensity data for a workout's exercises over the last 5 weeks
-func (r *ExerciseLogRepository) GetWorkoutIntensityData(ctx context.Context, userID int, workoutID int) (map[int]map[string]float64, error) {
+func (r *ExerciseLogRepository) GetWorkoutIntensityData(
+	ctx context.Context,
+	userID int,
+	workoutID int,
+) (map[int]map[string]float64, error) {
 	executor, err := r.GetExecutor(ctx)
 	if err != nil {
 		return nil, err
@@ -286,7 +321,8 @@ func (r *ExerciseLogRepository) GetWorkoutIntensityData(ctx context.Context, use
 			exercise_id,
 			week_offset,
 			AVG(CASE 
-				WHEN exercise_type IN ('Isometric', 'Isometric Weighted', 'Timed Reps', 'Timed Reps Weighted') THEN
+				WHEN exercise_type IN ('Isometric', 'Isometric Weighted', 'Timed Reps', 'Timed Reps Weighted')
+					THEN
 					CASE WHEN max_time > 0 THEN CAST(time_seconds AS REAL) / max_time * 100 ELSE 0 END
 				ELSE
 					CASE WHEN max_reps > 0 THEN CAST(reps AS REAL) / max_reps * 100 ELSE 0 END
@@ -327,7 +363,19 @@ func (r *ExerciseLogRepository) GetWorkoutIntensityData(ctx context.Context, use
 }
 
 // Create creates a new exercise log
-func (r *ExerciseLogRepository) Create(ctx context.Context, userID int, workoutID *int, exerciseID int, position int, sets *int, reps *int, timeSeconds *int, weight *float64, restSeconds *int, notes *string) (int64, error) {
+func (r *ExerciseLogRepository) Create(
+	ctx context.Context,
+	userID int,
+	workoutID *int,
+	exerciseID int,
+	position int,
+	sets *int,
+	reps *int,
+	timeSeconds *int,
+	weight *float64,
+	restSeconds *int,
+	notes *string,
+) (int64, error) {
 	log.Printf("Starting to create exercise log for exercise %d, user %d", exerciseID, userID)
 
 	// Get user from context
@@ -347,9 +395,12 @@ func (r *ExerciseLogRepository) Create(ctx context.Context, userID int, workoutI
 	// Insert exercise log
 	now := time.Now().Format("2006-01-02 15:04:05")
 	result, err := executor.ExecContext(ctx, `
-		INSERT INTO exercise_log (version, created_by, modified_by, created_when, modified_when, user_id, workout_id, exercise_id, logged_when, position, sets, reps, time_seconds, weight, rest_seconds, notes)
+		INSERT INTO exercise_log (version, created_by, modified_by, created_when, modified_when, user_id,
+			workout_id, exercise_id, logged_when, position, sets, reps, time_seconds, weight, rest_seconds,
+			notes)
 		VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`, user.FirebaseUID, user.FirebaseUID, now, now, userID, workoutID, exerciseID, now, position, sets, reps, timeSeconds, weight, restSeconds, notes)
+	`, user.FirebaseUID, user.FirebaseUID, now, now, userID, workoutID, exerciseID, now, position,
+		sets, reps, timeSeconds, weight, restSeconds, notes)
 	if err != nil {
 		return 0, err
 	}
@@ -364,7 +415,16 @@ func (r *ExerciseLogRepository) Create(ctx context.Context, userID int, workoutI
 }
 
 // Update updates an existing exercise log
-func (r *ExerciseLogRepository) Update(ctx context.Context, id int, sets *int, reps *int, timeSeconds *int, weight *float64, restSeconds *int, notes *string) error {
+func (r *ExerciseLogRepository) Update(
+	ctx context.Context,
+	id int,
+	sets *int,
+	reps *int,
+	timeSeconds *int,
+	weight *float64,
+	restSeconds *int,
+	notes *string,
+) error {
 	log.Printf("Starting to update exercise log %d", id)
 
 	// Get user from context
@@ -385,7 +445,8 @@ func (r *ExerciseLogRepository) Update(ctx context.Context, id int, sets *int, r
 	now := time.Now().Format("2006-01-02 15:04:05")
 	_, err = executor.ExecContext(ctx, `
 		UPDATE exercise_log 
-		SET sets = ?, reps = ?, time_seconds = ?, weight = ?, rest_seconds = ?, notes = ?, modified_by = ?, modified_when = ?, version = version + 1
+		SET sets = ?, reps = ?, time_seconds = ?, weight = ?, rest_seconds = ?, notes = ?, modified_by =
+			?, modified_when = ?, version = version + 1
 		WHERE id = ?
 	`, sets, reps, timeSeconds, weight, restSeconds, notes, user.FirebaseUID, now, id)
 	if err != nil {
@@ -402,7 +463,8 @@ func (r *ExerciseLogRepository) Delete(ctx context.Context, id int, userID int) 
 		return err
 	}
 
-	_, err = executor.ExecContext(ctx, `DELETE FROM exercise_log WHERE id = ? AND user_id = ?`, id, userID)
+	_, err = executor.ExecContext(ctx, `DELETE FROM exercise_log WHERE id = ? AND user_id = ?`, id,
+		userID)
 	return err
 }
 
@@ -437,7 +499,11 @@ type CalendarWeekEntry struct {
 }
 
 // GetCalendarYearData returns distinct (date, workout_id) pairs for a given year
-func (r *ExerciseLogRepository) GetCalendarYearData(ctx context.Context, userID int, year string) ([]CalendarYearEntry, error) {
+func (r *ExerciseLogRepository) GetCalendarYearData(
+	ctx context.Context,
+	userID int,
+	year string,
+) ([]CalendarYearEntry, error) {
 	executor, err := r.GetExecutor(ctx)
 	if err != nil {
 		return nil, err
@@ -470,7 +536,12 @@ func (r *ExerciseLogRepository) GetCalendarYearData(ctx context.Context, userID 
 }
 
 // GetCalendarMonthData returns log data grouped by (date, workout_id) for a given month
-func (r *ExerciseLogRepository) GetCalendarMonthData(ctx context.Context, userID int, year, month string) ([]CalendarMonthEntry, error) {
+func (r *ExerciseLogRepository) GetCalendarMonthData(
+	ctx context.Context,
+	userID int,
+	year,
+	month string,
+) ([]CalendarMonthEntry, error) {
 	executor, err := r.GetExecutor(ctx)
 	if err != nil {
 		return nil, err
@@ -498,7 +569,12 @@ func (r *ExerciseLogRepository) GetCalendarMonthData(ctx context.Context, userID
 	var entries []CalendarMonthEntry
 	for rows.Next() {
 		var entry CalendarMonthEntry
-		if err := rows.Scan(&entry.Date, &entry.WorkoutID, &entry.WorkoutName, &entry.ExerciseCount); err != nil {
+		if err := rows.Scan(
+			&entry.Date,
+			&entry.WorkoutID,
+			&entry.WorkoutName,
+			&entry.ExerciseCount,
+		); err != nil {
 			return nil, err
 		}
 		entries = append(entries, entry)
@@ -507,7 +583,12 @@ func (r *ExerciseLogRepository) GetCalendarMonthData(ctx context.Context, userID
 }
 
 // GetCalendarWeekData returns detailed exercise data for a date range (week)
-func (r *ExerciseLogRepository) GetCalendarWeekData(ctx context.Context, userID int, startDate, endDate string) ([]CalendarWeekEntry, error) {
+func (r *ExerciseLogRepository) GetCalendarWeekData(
+	ctx context.Context,
+	userID int,
+	startDate,
+	endDate string,
+) ([]CalendarWeekEntry, error) {
 	executor, err := r.GetExecutor(ctx)
 	if err != nil {
 		return nil, err

@@ -38,11 +38,14 @@ type ExerciseArea struct {
 // Muscle represents a specific muscle in the body
 type Muscle struct {
 	BaseEntity
-	Name            string   `json:"name" db:"name"`
-	MuscleGroupID   int      `json:"muscle_group_id" db:"muscle_group_id"`
-	MuscleGroupName string   `json:"muscle_group_name,omitempty" db:"muscle_group_name"` // For JOIN queries
-	RegionName      string   `json:"region_name,omitempty" db:"region_name"`             // For JOIN queries
-	ExerciseAreas   []string `json:"exercise_areas,omitempty"`                           // For many-to-many relationship
+	Name          string `json:"name" db:"name"`
+	MuscleGroupID int    `json:"muscle_group_id" db:"muscle_group_id"`
+	// For JOIN queries.
+	MuscleGroupName string `json:"muscle_group_name,omitempty" db:"muscle_group_name"`
+	// For JOIN queries.
+	RegionName string `json:"region_name,omitempty" db:"region_name"`
+	// For many-to-many relationship.
+	ExerciseAreas []string `json:"exercise_areas,omitempty"`
 }
 
 // MuscleExerciseArea represents the many-to-many relationship between muscles and exercise areas
@@ -69,9 +72,10 @@ const (
 // Exercise represents a specific exercise
 type Exercise struct {
 	BaseEntity
-	Name          string                `json:"name" db:"name"`
-	Type          ExerciseType          `json:"type" db:"type"`
-	Muscles       []ExerciseMuscle      `json:"muscles,omitempty"`        // For many-to-many relationship with percentages
+	Name string       `json:"name" db:"name"`
+	Type ExerciseType `json:"type" db:"type"`
+	// For many-to-many relationship with percentages.
+	Muscles       []ExerciseMuscle      `json:"muscles,omitempty"`
 	ExerciseAreas []ExerciseAreaSummary `json:"exercise_areas,omitempty"` // Grouped exercise areas
 }
 
@@ -82,7 +86,8 @@ type ExerciseAreaSummary struct {
 	Percentage       float64 `json:"percentage"` // Average of percentages of all muscles in this area
 }
 
-// ExerciseMuscle represents the many-to-many relationship between exercises and muscles with percentage
+// ExerciseMuscle represents the many-to-many relationship between exercises and muscles with
+// percentage
 type ExerciseMuscle struct {
 	ExerciseID  int       `json:"exercise_id" db:"exercise_id"`
 	MuscleID    int       `json:"muscle_id" db:"muscle_id"`
@@ -131,8 +136,9 @@ type WorkoutExercise struct {
 // ExerciseLog represents a logged/completed exercise
 type ExerciseLog struct {
 	BaseEntity
-	UserID       int       `json:"user_id" db:"user_id"`
-	WorkoutID    *int      `json:"workout_id,omitempty" db:"workout_id"` // Nullable - can be null if workout is deleted
+	UserID int `json:"user_id" db:"user_id"`
+	// Nullable - can be null if workout is deleted.
+	WorkoutID    *int      `json:"workout_id,omitempty" db:"workout_id"`
 	ExerciseID   int       `json:"exercise_id" db:"exercise_id"`
 	ExerciseName string    `json:"exercise_name,omitempty" db:"exercise_name"` // For JOIN queries
 	ExerciseType string    `json:"exercise_type,omitempty" db:"exercise_type"` // For JOIN queries

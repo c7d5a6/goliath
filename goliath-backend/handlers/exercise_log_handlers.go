@@ -19,14 +19,18 @@ type ExerciseLogHandlers struct {
 }
 
 // NewExerciseLogHandlers creates a new ExerciseLogHandlers
-func NewExerciseLogHandlers(exerciseLogService *services.ExerciseLogService, db *sql.DB) *ExerciseLogHandlers {
+func NewExerciseLogHandlers(
+	exerciseLogService *services.ExerciseLogService,
+	db *sql.DB,
+) *ExerciseLogHandlers {
 	return &ExerciseLogHandlers{
 		exerciseLogService: exerciseLogService,
 		db:                 db,
 	}
 }
 
-// GetExerciseLogs handles GET /exercise-logs - returns all exercise logs for authenticated user with pagination
+// GetExerciseLogs handles GET /exercise-logs - returns all exercise logs for authenticated user
+// with pagination
 func (h *ExerciseLogHandlers) GetExerciseLogs(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -281,7 +285,11 @@ func (h *ExerciseLogHandlers) GetWorkoutIntensity(c *gin.Context) {
 		return
 	}
 
-	log.Printf("=== Handler: Starting intensity calculation for workout %d, user %d ===", workoutID, user.ID)
+	log.Printf(
+		"=== Handler: Starting intensity calculation for workout %d, user %d ===",
+		workoutID,
+		user.ID,
+	)
 
 	// Get the DB executor (transaction if available, otherwise raw DB)
 	dbExecutor := middleware.GetDBFromContext(ctx, h.db)

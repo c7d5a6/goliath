@@ -16,7 +16,10 @@ type WorkoutService struct {
 }
 
 // NewWorkoutService creates a new WorkoutService
-func NewWorkoutService(workoutRepo *repositories.WorkoutRepository, workoutExerciseRepo *repositories.WorkoutExerciseRepository) *WorkoutService {
+func NewWorkoutService(
+	workoutRepo *repositories.WorkoutRepository,
+	workoutExerciseRepo *repositories.WorkoutExerciseRepository,
+) *WorkoutService {
 	return &WorkoutService{
 		workoutRepo:         workoutRepo,
 		workoutExerciseRepo: workoutExerciseRepo,
@@ -24,7 +27,10 @@ func NewWorkoutService(workoutRepo *repositories.WorkoutRepository, workoutExerc
 }
 
 // GetUserWorkouts retrieves all workouts for a user
-func (s *WorkoutService) GetUserWorkouts(ctx context.Context, userID int) ([]entities.Workout, error) {
+func (s *WorkoutService) GetUserWorkouts(
+	ctx context.Context,
+	userID int,
+) ([]entities.Workout, error) {
 	workouts, err := s.workoutRepo.GetAllForUser(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -33,7 +39,11 @@ func (s *WorkoutService) GetUserWorkouts(ctx context.Context, userID int) ([]ent
 }
 
 // GetWorkoutByID retrieves a single workout and verifies ownership
-func (s *WorkoutService) GetWorkoutByID(ctx context.Context, id int, userID int) (*entities.Workout, error) {
+func (s *WorkoutService) GetWorkoutByID(
+	ctx context.Context,
+	id int,
+	userID int,
+) (*entities.Workout, error) {
 	workout, err := s.workoutRepo.GetByID(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("workout not found: %w", err)
@@ -53,7 +63,11 @@ type CreateWorkoutInput struct {
 }
 
 // CreateWorkout creates a new workout for a user
-func (s *WorkoutService) CreateWorkout(ctx context.Context, userID int, input CreateWorkoutInput) (int64, error) {
+func (s *WorkoutService) CreateWorkout(
+	ctx context.Context,
+	userID int,
+	input CreateWorkoutInput,
+) (int64, error) {
 	log.Printf("Service: creating workout %s for user %d", input.Name, userID)
 
 	// Create workout
@@ -71,7 +85,12 @@ type UpdateWorkoutInput struct {
 }
 
 // UpdateWorkout updates an existing workout with ownership verification
-func (s *WorkoutService) UpdateWorkout(ctx context.Context, id int, userID int, input UpdateWorkoutInput) error {
+func (s *WorkoutService) UpdateWorkout(
+	ctx context.Context,
+	id int,
+	userID int,
+	input UpdateWorkoutInput,
+) error {
 	log.Printf("Service: updating workout %d for user %d", id, userID)
 
 	// Check if workout exists and belongs to user
@@ -117,7 +136,11 @@ func (s *WorkoutService) DeleteWorkout(ctx context.Context, id int, userID int) 
 }
 
 // GetWorkoutExercises retrieves all exercises for a workout with ownership verification
-func (s *WorkoutService) GetWorkoutExercises(ctx context.Context, workoutID int, userID int) ([]entities.WorkoutExercise, error) {
+func (s *WorkoutService) GetWorkoutExercises(
+	ctx context.Context,
+	workoutID int,
+	userID int,
+) ([]entities.WorkoutExercise, error) {
 	// Verify workout belongs to user
 	workout, err := s.workoutRepo.GetByID(ctx, workoutID)
 	if err != nil {
@@ -149,7 +172,12 @@ type AddExerciseToWorkoutInput struct {
 }
 
 // AddExerciseToWorkout adds an exercise to a workout with ownership verification
-func (s *WorkoutService) AddExerciseToWorkout(ctx context.Context, workoutID int, userID int, input AddExerciseToWorkoutInput) (int64, error) {
+func (s *WorkoutService) AddExerciseToWorkout(
+	ctx context.Context,
+	workoutID int,
+	userID int,
+	input AddExerciseToWorkoutInput,
+) (int64, error) {
 	// Verify workout belongs to user
 	workout, err := s.workoutRepo.GetByID(ctx, workoutID)
 	if err != nil {
@@ -160,7 +188,18 @@ func (s *WorkoutService) AddExerciseToWorkout(ctx context.Context, workoutID int
 	}
 
 	// Create workout exercise
-	id, err := s.workoutExerciseRepo.Create(ctx, workoutID, input.ExerciseID, input.Position, input.Sets, input.Reps, input.TimeSeconds, input.Weight, input.RestSeconds, input.Notes)
+	id, err := s.workoutExerciseRepo.Create(
+		ctx,
+		workoutID,
+		input.ExerciseID,
+		input.Position,
+		input.Sets,
+		input.Reps,
+		input.TimeSeconds,
+		input.Weight,
+		input.RestSeconds,
+		input.Notes,
+	)
 	if err != nil {
 		return 0, fmt.Errorf("failed to add exercise to workout: %w", err)
 	}
@@ -180,7 +219,12 @@ type UpdateWorkoutExerciseInput struct {
 }
 
 // UpdateWorkoutExercise updates a workout exercise with ownership verification
-func (s *WorkoutService) UpdateWorkoutExercise(ctx context.Context, workoutExerciseID int, userID int, input UpdateWorkoutExerciseInput) error {
+func (s *WorkoutService) UpdateWorkoutExercise(
+	ctx context.Context,
+	workoutExerciseID int,
+	userID int,
+	input UpdateWorkoutExerciseInput,
+) error {
 	// Get workout exercise
 	workoutExercise, err := s.workoutExerciseRepo.GetByID(ctx, workoutExerciseID)
 	if err != nil {
@@ -197,7 +241,17 @@ func (s *WorkoutService) UpdateWorkoutExercise(ctx context.Context, workoutExerc
 	}
 
 	// Update workout exercise
-	err = s.workoutExerciseRepo.Update(ctx, workoutExerciseID, input.Position, input.Sets, input.Reps, input.TimeSeconds, input.Weight, input.RestSeconds, input.Notes)
+	err = s.workoutExerciseRepo.Update(
+		ctx,
+		workoutExerciseID,
+		input.Position,
+		input.Sets,
+		input.Reps,
+		input.TimeSeconds,
+		input.Weight,
+		input.RestSeconds,
+		input.Notes,
+	)
 	if err != nil {
 		return fmt.Errorf("failed to update workout exercise: %w", err)
 	}
@@ -206,7 +260,11 @@ func (s *WorkoutService) UpdateWorkoutExercise(ctx context.Context, workoutExerc
 }
 
 // RemoveExerciseFromWorkout removes an exercise from a workout with ownership verification
-func (s *WorkoutService) RemoveExerciseFromWorkout(ctx context.Context, workoutExerciseID int, userID int) error {
+func (s *WorkoutService) RemoveExerciseFromWorkout(
+	ctx context.Context,
+	workoutExerciseID int,
+	userID int,
+) error {
 	// Get workout exercise
 	workoutExercise, err := s.workoutExerciseRepo.GetByID(ctx, workoutExerciseID)
 	if err != nil {
@@ -232,7 +290,11 @@ func (s *WorkoutService) RemoveExerciseFromWorkout(ctx context.Context, workoutE
 }
 
 // GetWorkoutExerciseAreas retrieves exercise areas with mean percentages for a workout
-func (s *WorkoutService) GetWorkoutExerciseAreas(ctx context.Context, workoutID int, userID int) ([]entities.ExerciseAreaSummary, error) {
+func (s *WorkoutService) GetWorkoutExerciseAreas(
+	ctx context.Context,
+	workoutID int,
+	userID int,
+) ([]entities.ExerciseAreaSummary, error) {
 	// Verify workout belongs to user
 	workout, err := s.workoutRepo.GetByID(ctx, workoutID)
 	if err != nil {

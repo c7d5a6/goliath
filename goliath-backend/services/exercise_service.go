@@ -90,7 +90,10 @@ type CreateExerciseInput struct {
 }
 
 // CreateExercise creates a new exercise with validation
-func (s *ExerciseService) CreateExercise(ctx context.Context, input CreateExerciseInput) (int64, error) {
+func (s *ExerciseService) CreateExercise(
+	ctx context.Context,
+	input CreateExerciseInput,
+) (int64, error) {
 	log.Printf("Service excersise create %s", input.Name)
 	// Validate exercise type
 	validType := false
@@ -115,7 +118,12 @@ func (s *ExerciseService) CreateExercise(ctx context.Context, input CreateExerci
 	}
 
 	// Create exercise
-	exerciseID, err := s.exerciseRepo.Create(ctx, input.Name, entities.ExerciseType(input.Type), input.Muscles)
+	exerciseID, err := s.exerciseRepo.Create(
+		ctx,
+		input.Name,
+		entities.ExerciseType(input.Type),
+		input.Muscles,
+	)
 	if err != nil {
 		return 0, fmt.Errorf("failed to create exercise: %w", err)
 	}
@@ -131,7 +139,11 @@ type UpdateExerciseInput struct {
 }
 
 // UpdateExercise updates an existing exercise with validation
-func (s *ExerciseService) UpdateExercise(ctx context.Context, id int, input UpdateExerciseInput) error {
+func (s *ExerciseService) UpdateExercise(
+	ctx context.Context,
+	id int,
+	input UpdateExerciseInput,
+) error {
 	log.Printf("Service exercise update %s", input.Name)
 
 	// Validate exercise type

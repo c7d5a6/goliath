@@ -87,7 +87,8 @@ func validateApplicationID(db *sql.DB, isNewDB bool) error {
 	} else {
 		// Existing database: validate application_id
 		if currentAppID != applicationID {
-			return fmt.Errorf("database application_id mismatch: expected 0x%X, got 0x%X - this database was not created by Goliath",
+			return fmt.Errorf("database application_id mismatch: expected 0x%X, got 0x%X: "+
+				"this database was not created by Goliath",
 				applicationID, currentAppID)
 		}
 		log.Printf("Verified application_id: 0x%X", currentAppID)

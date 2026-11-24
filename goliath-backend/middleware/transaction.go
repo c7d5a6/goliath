@@ -44,7 +44,11 @@ func Transaction(db *sql.DB) gin.HandlerFunc {
 				if rbErr := tx.Rollback(); rbErr != nil {
 					log.Printf("Failed to rollback transaction: %v", rbErr)
 				}
-				log.Printf("Transaction rolled back (status: %d, aborted: %v)", c.Writer.Status(), c.IsAborted())
+				log.Printf(
+					"Transaction rolled back (status: %d, aborted: %v)",
+					c.Writer.Status(),
+					c.IsAborted(),
+				)
 			} else {
 				// Success, commit
 				if err := tx.Commit(); err != nil {

@@ -17,14 +17,21 @@ type ExerciseLogService struct {
 }
 
 // NewExerciseLogService creates a new ExerciseLogService
-func NewExerciseLogService(exerciseLogRepo *repositories.ExerciseLogRepository) *ExerciseLogService {
+func NewExerciseLogService(
+	exerciseLogRepo *repositories.ExerciseLogRepository,
+) *ExerciseLogService {
 	return &ExerciseLogService{
 		exerciseLogRepo: exerciseLogRepo,
 	}
 }
 
 // GetAllLogs retrieves all exercise logs for a specific user with pagination
-func (s *ExerciseLogService) GetAllLogs(ctx context.Context, userID int, limit int, offset int) ([]entities.ExerciseLog, error) {
+func (s *ExerciseLogService) GetAllLogs(
+	ctx context.Context,
+	userID int,
+	limit int,
+	offset int,
+) ([]entities.ExerciseLog, error) {
 	if limit <= 0 {
 		limit = 50
 	}
@@ -36,7 +43,13 @@ func (s *ExerciseLogService) GetAllLogs(ctx context.Context, userID int, limit i
 }
 
 // GetLogsByExerciseID retrieves all logs for a specific exercise for a specific user
-func (s *ExerciseLogService) GetLogsByExerciseID(ctx context.Context, userID int, exerciseID int, limit int, offset int) ([]entities.ExerciseLog, error) {
+func (s *ExerciseLogService) GetLogsByExerciseID(
+	ctx context.Context,
+	userID int,
+	exerciseID int,
+	limit int,
+	offset int,
+) ([]entities.ExerciseLog, error) {
 	if limit <= 0 {
 		limit = 50
 	}
@@ -48,7 +61,13 @@ func (s *ExerciseLogService) GetLogsByExerciseID(ctx context.Context, userID int
 }
 
 // GetLogsByWorkoutID retrieves all logs associated with a workout for a specific user
-func (s *ExerciseLogService) GetLogsByWorkoutID(ctx context.Context, userID int, workoutID int, limit int, offset int) ([]entities.ExerciseLog, error) {
+func (s *ExerciseLogService) GetLogsByWorkoutID(
+	ctx context.Context,
+	userID int,
+	workoutID int,
+	limit int,
+	offset int,
+) ([]entities.ExerciseLog, error) {
 	if limit <= 0 {
 		limit = 50
 	}
@@ -60,7 +79,11 @@ func (s *ExerciseLogService) GetLogsByWorkoutID(ctx context.Context, userID int,
 }
 
 // GetLatestLogsByWorkout retrieves the latest log per unique exercise for a workout
-func (s *ExerciseLogService) GetLatestLogsByWorkout(ctx context.Context, userID int, workoutID int) ([]entities.ExerciseLog, error) {
+func (s *ExerciseLogService) GetLatestLogsByWorkout(
+	ctx context.Context,
+	userID int,
+	workoutID int,
+) ([]entities.ExerciseLog, error) {
 	logs, err := s.exerciseLogRepo.GetLatestByWorkoutExercises(ctx, userID, workoutID)
 	if err != nil {
 		return nil, err
@@ -69,7 +92,11 @@ func (s *ExerciseLogService) GetLatestLogsByWorkout(ctx context.Context, userID 
 }
 
 // GetLogByID retrieves a single exercise log by ID for a specific user
-func (s *ExerciseLogService) GetLogByID(ctx context.Context, id int, userID int) (*entities.ExerciseLog, error) {
+func (s *ExerciseLogService) GetLogByID(
+	ctx context.Context,
+	id int,
+	userID int,
+) (*entities.ExerciseLog, error) {
 	logEntry, err := s.exerciseLogRepo.GetByID(ctx, id, userID)
 	if err != nil {
 		return nil, fmt.Errorf("exercise log not found: %w", err)
@@ -91,11 +118,27 @@ type CreateExerciseLogInput struct {
 }
 
 // CreateExerciseLog creates a new exercise log for a specific user
-func (s *ExerciseLogService) CreateExerciseLog(ctx context.Context, userID int, input CreateExerciseLogInput) (int64, error) {
+func (s *ExerciseLogService) CreateExerciseLog(
+	ctx context.Context,
+	userID int,
+	input CreateExerciseLogInput,
+) (int64, error) {
 	log.Printf("Service: creating exercise log for exercise %d, user %d", input.ExerciseID, userID)
 
 	// Create exercise log
-	logID, err := s.exerciseLogRepo.Create(ctx, userID, input.WorkoutID, input.ExerciseID, input.Position, input.Sets, input.Reps, input.TimeSeconds, input.Weight, input.RestSeconds, input.Notes)
+	logID, err := s.exerciseLogRepo.Create(
+		ctx,
+		userID,
+		input.WorkoutID,
+		input.ExerciseID,
+		input.Position,
+		input.Sets,
+		input.Reps,
+		input.TimeSeconds,
+		input.Weight,
+		input.RestSeconds,
+		input.Notes,
+	)
 	if err != nil {
 		return 0, fmt.Errorf("failed to create exercise log: %w", err)
 	}
@@ -114,7 +157,12 @@ type UpdateExerciseLogInput struct {
 }
 
 // UpdateExerciseLog updates an existing exercise log with user authorization
-func (s *ExerciseLogService) UpdateExerciseLog(ctx context.Context, id int, userID int, input UpdateExerciseLogInput) error {
+func (s *ExerciseLogService) UpdateExerciseLog(
+	ctx context.Context,
+	id int,
+	userID int,
+	input UpdateExerciseLogInput,
+) error {
 	log.Printf("Service: updating exercise log %d for user %d", id, userID)
 
 	// Check if log exists and belongs to user
@@ -129,7 +177,16 @@ func (s *ExerciseLogService) UpdateExerciseLog(ctx context.Context, id int, user
 	}
 
 	// Update log
-	err = s.exerciseLogRepo.Update(ctx, id, input.Sets, input.Reps, input.TimeSeconds, input.Weight, input.RestSeconds, input.Notes)
+	err = s.exerciseLogRepo.Update(
+		ctx,
+		id,
+		input.Sets,
+		input.Reps,
+		input.TimeSeconds,
+		input.Weight,
+		input.RestSeconds,
+		input.Notes,
+	)
 	if err != nil {
 		return fmt.Errorf("failed to update exercise log: %w", err)
 	}
@@ -137,12 +194,24 @@ func (s *ExerciseLogService) UpdateExerciseLog(ctx context.Context, id int, user
 	return nil
 }
 
-// GetWorkoutIntensityData calculates intensity data for a workout
-func (s *ExerciseLogService) GetWorkoutIntensityData(ctx context.Context, userID int, workoutID int, db interface {
+// intensityDB is the subset of *sql.DB (or *sql.Tx) the intensity calculation reads through.
+type intensityDB interface {
 	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
 	QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row
-}) (map[string]interface{}, error) {
-	log.Printf("=== Service: Starting intensity calculation for workout %d, user %d ===", workoutID, userID)
+}
+
+// GetWorkoutIntensityData calculates intensity data for a workout
+func (s *ExerciseLogService) GetWorkoutIntensityData(
+	ctx context.Context,
+	userID int,
+	workoutID int,
+	db intensityDB,
+) (map[string]interface{}, error) {
+	log.Printf(
+		"=== Service: Starting intensity calculation for workout %d, user %d ===",
+		workoutID,
+		userID,
+	)
 
 	// Query 1: Get all exercise IDs from both workout definition and logs
 	exerciseIDsQuery := `
@@ -242,7 +311,12 @@ func (s *ExerciseLogService) GetWorkoutIntensityData(ctx context.Context, userID
 	`
 	for _, exID := range exerciseIDs {
 		var reps, time, weight, rest int
-		log.Printf("  Querying config for exercise %d (workoutID=%d, exerciseID=%d)", exID, workoutID, exID)
+		log.Printf(
+			"  Querying config for exercise %d (workoutID=%d, exerciseID=%d)",
+			exID,
+			workoutID,
+			exID,
+		)
 		err := db.QueryRowContext(ctx, configQuery, workoutID, exID).Scan(&reps, &time, &weight, &rest)
 		if err == nil {
 			exercises[exID].WorkoutReps = reps
@@ -265,11 +339,20 @@ func (s *ExerciseLogService) GetWorkoutIntensityData(ctx context.Context, userID
 
 	// Query 3: Get max values for each exercise
 	log.Printf("Query 3: Fetching max logged values for each exercise...")
-	maxQuery := `SELECT MAX(COALESCE(reps, 0)), MAX(COALESCE(time_seconds, 0)), MAX(COALESCE(weight, 0)), MIN(COALESCE(rest_seconds, 0)) FROM exercise_log WHERE user_id = ? AND exercise_id = ?`
+	maxQuery := `
+		SELECT MAX(COALESCE(reps, 0)), MAX(COALESCE(time_seconds, 0)),
+			MAX(COALESCE(weight, 0)), MIN(COALESCE(rest_seconds, 0))
+		FROM exercise_log
+		WHERE user_id = ? AND exercise_id = ?`
 	for _, exID := range exerciseIDs {
 		var maxReps, maxTime, maxWeight, minRest int
 		log.Printf("  Querying max for exercise %d (userID=%d, exerciseID=%d)", exID, userID, exID)
-		err := db.QueryRowContext(ctx, maxQuery, userID, exID).Scan(&maxReps, &maxTime, &maxWeight, &minRest)
+		err := db.QueryRowContext(ctx, maxQuery, userID, exID).Scan(
+			&maxReps,
+			&maxTime,
+			&maxWeight,
+			&minRest,
+		)
 		if err != nil {
 			log.Printf("  -> Error: %v (exercise might not be logged yet)", err)
 			// Not a fatal error - exercise might not be logged yet
@@ -279,7 +362,13 @@ func (s *ExerciseLogService) GetWorkoutIntensityData(ctx context.Context, userID
 		exercises[exID].MaxTime = maxTime
 		exercises[exID].MaxWeight = maxWeight
 		exercises[exID].MinRestTime = minRest
-		log.Printf("  -> Found: max_reps=%d, max_time=%d, max_weight=%d, min_rest=%d", maxReps, maxTime, maxWeight, minRest)
+		log.Printf(
+			"  -> Found: max_reps=%d, max_time=%d, max_weight=%d, min_rest=%d",
+			maxReps,
+			maxTime,
+			maxWeight,
+			minRest,
+		)
 	}
 	log.Printf("Query 3 Complete")
 
@@ -322,7 +411,12 @@ func (s *ExerciseLogService) GetWorkoutIntensityData(ctx context.Context, userID
 
 		// Log results
 		for _, exID := range exerciseIDs {
-			log.Printf("  Exercise %d -> %d areas: %v", exID, len(exercises[exID].Areas), exercises[exID].Areas)
+			log.Printf(
+				"  Exercise %d -> %d areas: %v",
+				exID,
+				len(exercises[exID].Areas),
+				exercises[exID].Areas,
+			)
 		}
 	}
 	log.Printf("Query 4 Complete")
@@ -344,7 +438,12 @@ func (s *ExerciseLogService) GetWorkoutIntensityData(ctx context.Context, userID
 	`
 
 	for _, exID := range exerciseIDs {
-		log.Printf("  Querying weekly logs for exercise %d (userID=%d, exerciseID=%d)", exID, userID, exID)
+		log.Printf(
+			"  Querying weekly logs for exercise %d (userID=%d, exerciseID=%d)",
+			exID,
+			userID,
+			exID,
+		)
 		weekRows, err := db.QueryContext(ctx, weekQuery, userID, exID)
 		if err != nil {
 			log.Printf("  -> Error: %v", err)
@@ -389,7 +488,13 @@ func (s *ExerciseLogService) GetWorkoutIntensityData(ctx context.Context, userID
 			if usesRestIntensity(ex.Type) && ex.MinRestTime > 0 && rest > 0 {
 				intensity += (float64(ex.MinRestTime) / float64(rest)) * 100
 				intensityCounts += 1
-				log.Printf("    Week %d: rest=%.0f, minRest=%d, intensity=%.1f%%", weekOffset, rest, ex.MinRestTime, intensity)
+				log.Printf(
+					"    Week %d: rest=%.0f, minRest=%d, intensity=%.1f%%",
+					weekOffset,
+					rest,
+					ex.MinRestTime,
+					intensity,
+				)
 			}
 			if intensityCounts > 0 {
 				intensity /= float64(intensityCounts)
@@ -398,7 +503,13 @@ func (s *ExerciseLogService) GetWorkoutIntensityData(ctx context.Context, userID
 			weeklyData[exID][weekOffset] = append(weeklyData[exID][weekOffset], intensity)
 			weekCounts[weekOffset]++
 			logCount++
-			log.Printf("    Week %d: reps=%.0f, time=%.0f, intensity=%.1f%%", weekOffset, reps, time, intensity)
+			log.Printf(
+				"    Week %d: reps=%.0f, time=%.0f, intensity=%.1f%%",
+				weekOffset,
+				reps,
+				time,
+				intensity,
+			)
 		}
 		weekRows.Close()
 		log.Printf("  -> Found %d logs across weeks: %v", logCount, weekCounts)
@@ -413,7 +524,11 @@ func (s *ExerciseLogService) GetWorkoutIntensityData(ctx context.Context, userID
 			if _, exists := areaNames[areaID]; !exists {
 				var name string
 				log.Printf("  Querying area name for id=%d", areaID)
-				err := db.QueryRowContext(ctx, "SELECT name FROM exercise_area WHERE id = ?", areaID).Scan(&name)
+				err := db.QueryRowContext(
+					ctx,
+					"SELECT name FROM exercise_area WHERE id = ?",
+					areaID,
+				).Scan(&name)
 				if err != nil {
 					log.Printf("  -> Error: %v", err)
 					continue
@@ -468,7 +583,13 @@ func (s *ExerciseLogService) GetWorkoutIntensityData(ctx context.Context, userID
 					avgIntensity := weekSum / float64(len(values))
 					sum += avgIntensity
 					count++
-					log.Printf("  Week %d, exercise %d: %d logs, avg=%.1f%%", week, ex.ID, len(values), avgIntensity)
+					log.Printf(
+						"  Week %d, exercise %d: %d logs, avg=%.1f%%",
+						week,
+						ex.ID,
+						len(values),
+						avgIntensity,
+					)
 				}
 			}
 
@@ -593,7 +714,11 @@ type CalendarWeekDay struct {
 }
 
 // GetCalendarYear returns year calendar data grouped by date
-func (s *ExerciseLogService) GetCalendarYear(ctx context.Context, userID int, year string) ([]CalendarYearDay, error) {
+func (s *ExerciseLogService) GetCalendarYear(
+	ctx context.Context,
+	userID int,
+	year string,
+) ([]CalendarYearDay, error) {
 	entries, err := s.exerciseLogRepo.GetCalendarYearData(ctx, userID, year)
 	if err != nil {
 		return nil, err
@@ -622,7 +747,12 @@ func (s *ExerciseLogService) GetCalendarYear(ctx context.Context, userID int, ye
 }
 
 // GetCalendarMonth returns month calendar data grouped by date with workout summaries
-func (s *ExerciseLogService) GetCalendarMonth(ctx context.Context, userID int, year, month string) ([]CalendarMonthDay, error) {
+func (s *ExerciseLogService) GetCalendarMonth(
+	ctx context.Context,
+	userID int,
+	year,
+	month string,
+) ([]CalendarMonthDay, error) {
 	entries, err := s.exerciseLogRepo.GetCalendarMonthData(ctx, userID, year, month)
 	if err != nil {
 		return nil, err
@@ -666,7 +796,12 @@ func (s *ExerciseLogService) GetCalendarMonth(ctx context.Context, userID int, y
 }
 
 // GetCalendarWeek returns week calendar data with full exercise details grouped by workout
-func (s *ExerciseLogService) GetCalendarWeek(ctx context.Context, userID int, startDate, endDate string) ([]CalendarWeekDay, error) {
+func (s *ExerciseLogService) GetCalendarWeek(
+	ctx context.Context,
+	userID int,
+	startDate,
+	endDate string,
+) ([]CalendarWeekDay, error) {
 	entries, err := s.exerciseLogRepo.GetCalendarWeekData(ctx, userID, startDate, endDate)
 	if err != nil {
 		return nil, err

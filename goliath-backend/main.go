@@ -49,7 +49,12 @@ func main() {
 	exerciseLogRepo := repositories.NewExerciseLogRepository(db)
 
 	// Initialize services
-	muscleService := services.NewMuscleService(muscleRepo, muscleGroupRepo, regionRepo, exerciseAreaRepo)
+	muscleService := services.NewMuscleService(
+		muscleRepo,
+		muscleGroupRepo,
+		regionRepo,
+		exerciseAreaRepo,
+	)
 	exerciseService := services.NewExerciseService(exerciseRepo)
 	userService := services.NewUserService(userRepo)
 	workoutService := services.NewWorkoutService(workoutRepo, workoutExerciseRepo)

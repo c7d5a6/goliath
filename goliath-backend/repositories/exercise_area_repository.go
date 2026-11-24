@@ -52,7 +52,10 @@ func (r *ExerciseAreaRepository) GetAll(ctx context.Context) ([]entities.Exercis
 }
 
 // GetByMuscleID retrieves exercise areas for a specific muscle
-func (r *ExerciseAreaRepository) GetByMuscleID(ctx context.Context, muscleID int) ([]string, error) {
+func (r *ExerciseAreaRepository) GetByMuscleID(
+	ctx context.Context,
+	muscleID int,
+) ([]string, error) {
 	executor, err := r.GetExecutor(ctx)
 	if err != nil {
 		return nil, err

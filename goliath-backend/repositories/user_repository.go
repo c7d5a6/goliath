@@ -26,7 +26,8 @@ func (r *UserRepository) GetAll(ctx context.Context) ([]entities.User, error) {
 		return nil, err
 	}
 	rows, err := executor.QueryContext(ctx, `
-		SELECT id, version, created_when, created_by, modified_when, modified_by, email, role, firebase_uid
+		SELECT id, version, created_when, created_by, modified_when, modified_by, email, role,
+			firebase_uid
 		FROM user
 		ORDER BY created_when DESC
 	`)
@@ -69,7 +70,8 @@ func (r *UserRepository) GetByID(ctx context.Context, id int) (*entities.User, e
 	}
 	var user entities.User
 	err = executor.QueryRowContext(ctx, `
-		SELECT id, version, created_when, created_by, modified_when, modified_by, email, role, firebase_uid
+		SELECT id, version, created_when, created_by, modified_when, modified_by, email, role,
+			firebase_uid
 		FROM user
 		WHERE id = ?
 	`, id).Scan(
@@ -102,7 +104,8 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*entitie
 	}
 	var user entities.User
 	err = executor.QueryRowContext(ctx, `
-		SELECT id, version, created_when, created_by, modified_when, modified_by, email, role, firebase_uid
+		SELECT id, version, created_when, created_by, modified_when, modified_by, email, role,
+			firebase_uid
 		FROM user
 		WHERE email = ?
 	`, email).Scan(
@@ -128,14 +131,18 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*entitie
 }
 
 // GetByFirebaseUID retrieves a user by Firebase UID
-func (r *UserRepository) GetByFirebaseUID(ctx context.Context, firebaseUID string) (*entities.User, error) {
+func (r *UserRepository) GetByFirebaseUID(
+	ctx context.Context,
+	firebaseUID string,
+) (*entities.User, error) {
 	executor, err := r.GetExecutor(ctx)
 	if err != nil {
 		return nil, err
 	}
 	var user entities.User
 	err = executor.QueryRowContext(ctx, `
-		SELECT id, version, created_when, created_by, modified_when, modified_by, email, role, firebase_uid
+		SELECT id, version, created_when, created_by, modified_when, modified_by, email, role,
+			firebase_uid
 		FROM user
 		WHERE firebase_uid = ?
 	`, firebaseUID).Scan(

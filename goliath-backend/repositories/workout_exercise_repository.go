@@ -23,7 +23,10 @@ func NewWorkoutExerciseRepository(db *sql.DB) *WorkoutExerciseRepository {
 }
 
 // GetAllForWorkout retrieves all exercises for a specific workout
-func (r *WorkoutExerciseRepository) GetAllForWorkout(ctx context.Context, workoutID int) ([]entities.WorkoutExercise, error) {
+func (r *WorkoutExerciseRepository) GetAllForWorkout(
+	ctx context.Context,
+	workoutID int,
+) ([]entities.WorkoutExercise, error) {
 	executor, err := r.GetExecutor(ctx)
 	if err != nil {
 		return nil, err
@@ -32,7 +35,8 @@ func (r *WorkoutExerciseRepository) GetAllForWorkout(ctx context.Context, workou
 	rows, err := executor.QueryContext(ctx, `
 		SELECT 
 			we.id, we.version, we.created_when, we.created_by, we.modified_when, we.modified_by,
-			we.workout_id, we.exercise_id, we.position, we.sets, we.reps, we.time_seconds, we.weight, we.rest_seconds, we.notes,
+			we.workout_id, we.exercise_id, we.position, we.sets, we.reps, we.time_seconds, we.weight,
+				we.rest_seconds, we.notes,
 			e.name as exercise_name, e.type as exercise_type
 		FROM workout_exercise we
 		JOIN exercise e ON we.exercise_id = e.id
@@ -61,7 +65,10 @@ func (r *WorkoutExerciseRepository) GetAllForWorkout(ctx context.Context, workou
 }
 
 // GetByID retrieves a single workout exercise by ID
-func (r *WorkoutExerciseRepository) GetByID(ctx context.Context, id int) (*entities.WorkoutExercise, error) {
+func (r *WorkoutExerciseRepository) GetByID(
+	ctx context.Context,
+	id int,
+) (*entities.WorkoutExercise, error) {
 	executor, err := r.GetExecutor(ctx)
 	if err != nil {
 		return nil, err
@@ -70,7 +77,8 @@ func (r *WorkoutExerciseRepository) GetByID(ctx context.Context, id int) (*entit
 	row := executor.QueryRowContext(ctx, `
 		SELECT 
 			we.id, we.version, we.created_when, we.created_by, we.modified_when, we.modified_by,
-			we.workout_id, we.exercise_id, we.position, we.sets, we.reps, we.time_seconds, we.weight, we.rest_seconds, we.notes,
+			we.workout_id, we.exercise_id, we.position, we.sets, we.reps, we.time_seconds, we.weight,
+				we.rest_seconds, we.notes,
 			e.name as exercise_name, e.type as exercise_type
 		FROM workout_exercise we
 		JOIN exercise e ON we.exercise_id = e.id
@@ -109,8 +117,23 @@ func (r *WorkoutExerciseRepository) GetByID(ctx context.Context, id int) (*entit
 }
 
 // Create creates a new workout exercise
-func (r *WorkoutExerciseRepository) Create(ctx context.Context, workoutID int, exerciseID int, position int, sets *int, reps *int, timeSeconds *int, weight *float64, restSeconds *int, notes *string) (int64, error) {
-	log.Printf("Starting to create workout exercise for workout %d, exercise %d", workoutID, exerciseID)
+func (r *WorkoutExerciseRepository) Create(
+	ctx context.Context,
+	workoutID int,
+	exerciseID int,
+	position int,
+	sets *int,
+	reps *int,
+	timeSeconds *int,
+	weight *float64,
+	restSeconds *int,
+	notes *string,
+) (int64, error) {
+	log.Printf(
+		"Starting to create workout exercise for workout %d, exercise %d",
+		workoutID,
+		exerciseID,
+	)
 
 	// Get user from context
 	user, hasUser := middleware.GetUserFromContext(ctx)
@@ -129,9 +152,11 @@ func (r *WorkoutExerciseRepository) Create(ctx context.Context, workoutID int, e
 	// Insert workout exercise
 	now := time.Now().Format("2006-01-02 15:04:05")
 	result, err := executor.ExecContext(ctx, `
-		INSERT INTO workout_exercise (version, created_by, modified_by, created_when, modified_when, workout_id, exercise_id, position, sets, reps, time_seconds, weight, rest_seconds, notes)
+		INSERT INTO workout_exercise (version, created_by, modified_by, created_when, modified_when,
+			workout_id, exercise_id, position, sets, reps, time_seconds, weight, rest_seconds, notes)
 		VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`, user.FirebaseUID, user.FirebaseUID, now, now, workoutID, exerciseID, position, sets, reps, timeSeconds, weight, restSeconds, notes)
+	`, user.FirebaseUID, user.FirebaseUID, now, now, workoutID, exerciseID, position, sets, reps,
+		timeSeconds, weight, restSeconds, notes)
 	if err != nil {
 		return 0, err
 	}
@@ -146,7 +171,17 @@ func (r *WorkoutExerciseRepository) Create(ctx context.Context, workoutID int, e
 }
 
 // Update updates an existing workout exercise
-func (r *WorkoutExerciseRepository) Update(ctx context.Context, id int, position int, sets *int, reps *int, timeSeconds *int, weight *float64, restSeconds *int, notes *string) error {
+func (r *WorkoutExerciseRepository) Update(
+	ctx context.Context,
+	id int,
+	position int,
+	sets *int,
+	reps *int,
+	timeSeconds *int,
+	weight *float64,
+	restSeconds *int,
+	notes *string,
+) error {
 	log.Printf("Starting to update workout exercise %d", id)
 
 	// Get user from context
@@ -167,7 +202,8 @@ func (r *WorkoutExerciseRepository) Update(ctx context.Context, id int, position
 	now := time.Now().Format("2006-01-02 15:04:05")
 	_, err = executor.ExecContext(ctx, `
 		UPDATE workout_exercise 
-		SET position = ?, sets = ?, reps = ?, time_seconds = ?, weight = ?, rest_seconds = ?, notes = ?, modified_by = ?, modified_when = ?, version = version + 1
+		SET position = ?, sets = ?, reps = ?, time_seconds = ?, weight = ?, rest_seconds = ?, notes = ?,
+			modified_by = ?, modified_when = ?, version = version + 1
 		WHERE id = ?
 	`, position, sets, reps, timeSeconds, weight, restSeconds, notes, user.FirebaseUID, now, id)
 	if err != nil {

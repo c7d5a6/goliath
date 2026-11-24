@@ -97,8 +97,11 @@ func (r *ExerciseRepository) GetByID(ctx context.Context, id int) (*entities.Exe
 	return &exercise, nil
 }
 
-// GetExerciseAreasForAllExercises retrieves exercise areas for all exercises with aggregated percentages
-func (r *ExerciseRepository) GetExerciseAreasForAllExercises(ctx context.Context) (map[int][]entities.ExerciseAreaSummary, error) {
+// GetExerciseAreasForAllExercises retrieves exercise areas for all exercises with aggregated
+// percentages
+func (r *ExerciseRepository) GetExerciseAreasForAllExercises(
+	ctx context.Context,
+) (map[int][]entities.ExerciseAreaSummary, error) {
 	executor, err := r.GetExecutor(ctx)
 	if err != nil {
 		return nil, err
@@ -131,7 +134,12 @@ func (r *ExerciseRepository) GetExerciseAreasForAllExercises(ctx context.Context
 	for rows.Next() {
 		var exerciseID int
 		var area entities.ExerciseAreaSummary
-		if err := rows.Scan(&exerciseID, &area.ExerciseAreaID, &area.ExerciseAreaName, &area.Percentage); err != nil {
+		if err := rows.Scan(
+			&exerciseID,
+			&area.ExerciseAreaID,
+			&area.ExerciseAreaName,
+			&area.Percentage,
+		); err != nil {
 			return nil, err
 		}
 		exerciseAreasMap[exerciseID] = append(exerciseAreasMap[exerciseID], area)
@@ -145,7 +153,10 @@ func (r *ExerciseRepository) GetExerciseAreasForAllExercises(ctx context.Context
 }
 
 // GetMusclesForExercise retrieves muscles associated with an exercise
-func (r *ExerciseRepository) GetMusclesForExercise(ctx context.Context, exerciseID int) ([]entities.ExerciseMuscle, error) {
+func (r *ExerciseRepository) GetMusclesForExercise(
+	ctx context.Context,
+	exerciseID int,
+) ([]entities.ExerciseMuscle, error) {
 	executor, err := r.GetExecutor(ctx)
 	if err != nil {
 		return nil, err
@@ -166,7 +177,14 @@ func (r *ExerciseRepository) GetMusclesForExercise(ctx context.Context, exercise
 	for rows.Next() {
 		var em entities.ExerciseMuscle
 		var createdWhen string
-		if err := rows.Scan(&em.ExerciseID, &em.MuscleID, &em.MuscleName, &em.Percentage, &createdWhen, &em.CreatedBy); err != nil {
+		if err := rows.Scan(
+			&em.ExerciseID,
+			&em.MuscleID,
+			&em.MuscleName,
+			&em.Percentage,
+			&createdWhen,
+			&em.CreatedBy,
+		); err != nil {
 			return nil, err
 		}
 		em.CreatedWhen, _ = time.Parse("2006-01-02 15:04:05", createdWhen)
@@ -181,7 +199,9 @@ func (r *ExerciseRepository) GetMusclesForExercise(ctx context.Context, exercise
 }
 
 // GetMusclesForAllExercises retrieves muscles for all exercises in one query
-func (r *ExerciseRepository) GetMusclesForAllExercises(ctx context.Context) (map[int][]entities.ExerciseMuscle, error) {
+func (r *ExerciseRepository) GetMusclesForAllExercises(
+	ctx context.Context,
+) (map[int][]entities.ExerciseMuscle, error) {
 	executor, err := r.GetExecutor(ctx)
 	if err != nil {
 		return nil, err
@@ -201,7 +221,14 @@ func (r *ExerciseRepository) GetMusclesForAllExercises(ctx context.Context) (map
 	for rows.Next() {
 		var em entities.ExerciseMuscle
 		var createdWhen string
-		if err := rows.Scan(&em.ExerciseID, &em.MuscleID, &em.MuscleName, &em.Percentage, &createdWhen, &em.CreatedBy); err != nil {
+		if err := rows.Scan(
+			&em.ExerciseID,
+			&em.MuscleID,
+			&em.MuscleName,
+			&em.Percentage,
+			&createdWhen,
+			&em.CreatedBy,
+		); err != nil {
 			return nil, err
 		}
 		em.CreatedWhen, _ = time.Parse("2006-01-02 15:04:05", createdWhen)
@@ -222,7 +249,11 @@ func (r *ExerciseRepository) ExerciseExists(ctx context.Context, name string) (b
 		return false, err
 	}
 	var count int
-	err = executor.QueryRowContext(ctx, "SELECT COUNT(*) FROM exercise WHERE LOWER(name) = LOWER(?)", name).Scan(&count)
+	err = executor.QueryRowContext(
+		ctx,
+		"SELECT COUNT(*) FROM exercise WHERE LOWER(name) = LOWER(?)",
+		name,
+	).Scan(&count)
 	if err != nil {
 		return false, err
 	}
@@ -237,7 +268,12 @@ type MuscleInput struct {
 
 // Create creates a new exercise with associated muscles in a transaction
 // This method requires a transaction to be present in the context (from Transaction middleware)
-func (r *ExerciseRepository) Create(ctx context.Context, name string, exerciseType entities.ExerciseType, muscles []MuscleInput) (int64, error) {
+func (r *ExerciseRepository) Create(
+	ctx context.Context,
+	name string,
+	exerciseType entities.ExerciseType,
+	muscles []MuscleInput,
+) (int64, error) {
 	log.Printf("Starting to create exercise %s", name)
 
 	// Get user from context
@@ -286,7 +322,13 @@ func (r *ExerciseRepository) Create(ctx context.Context, name string, exerciseTy
 
 // Update updates an existing exercise with associated muscles in a transaction
 // This method requires a transaction to be present in the context (from Transaction middleware)
-func (r *ExerciseRepository) Update(ctx context.Context, id int, name string, exerciseType entities.ExerciseType, muscles []MuscleInput) error {
+func (r *ExerciseRepository) Update(
+	ctx context.Context,
+	id int,
+	name string,
+	exerciseType entities.ExerciseType,
+	muscles []MuscleInput,
+) error {
 	log.Printf("Starting to update exercise %d", id)
 
 	// Get user from context

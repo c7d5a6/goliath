@@ -23,7 +23,10 @@ func NewWorkoutRepository(db *sql.DB) *WorkoutRepository {
 }
 
 // GetAllForUser retrieves all workouts for a specific user
-func (r *WorkoutRepository) GetAllForUser(ctx context.Context, userID int) ([]entities.Workout, error) {
+func (r *WorkoutRepository) GetAllForUser(
+	ctx context.Context,
+	userID int,
+) ([]entities.Workout, error) {
 	executor, err := r.GetExecutor(ctx)
 	if err != nil {
 		return nil, err
@@ -172,7 +175,10 @@ func (r *WorkoutRepository) Delete(ctx context.Context, id int) error {
 }
 
 // GetExerciseAreasForWorkout retrieves exercise areas with mean percentages for a workout
-func (r *WorkoutRepository) GetExerciseAreasForWorkout(ctx context.Context, workoutID int) ([]entities.ExerciseAreaSummary, error) {
+func (r *WorkoutRepository) GetExerciseAreasForWorkout(
+	ctx context.Context,
+	workoutID int,
+) ([]entities.ExerciseAreaSummary, error) {
 	executor, err := r.GetExecutor(ctx)
 	if err != nil {
 		return nil, err
