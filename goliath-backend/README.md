@@ -23,74 +23,34 @@ PORT=3000 go run main.go
 
 ## Deployment
 
-### Prerequisites on Server
-- PM2 installed (`npm install -g pm2`)
-- SSH access to foundry@foundry.owlbeardm.com
-
-### Release Script
-
-The `release.sh` script automates building, versioning, and deploying the backend.
-
-#### Usage
+Deployed with the shared owl procedure (`deploy/deploy.sh`, identical in every project, and
+`deploy/deploy.conf`). It builds locally, ships a release to `~/goliath/releases/<id>`, switches
+the `current` symlink, restarts the `owl-goliath` systemd unit and health-checks `/healthz`,
+rolling back automatically on failure. Only committed code is deployed.
 
 ```bash
-# Patch version bump (e.g., v1.0.0 -> v1.0.1)
-./release.sh
-
-# Minor version bump (e.g., v1.0.0 -> v1.1.0)
-./release.sh minor
-
-# Major version bump (e.g., v1.0.0 -> v2.0.0)
-./release.sh major
-
-# Custom version
-./release.sh v1.2.3
+./deploy/deploy.sh init       # first time only: server folder, .env, systemd unit, Caddy site
+./deploy/deploy.sh            # build, ship, switch, restart, health check
+./deploy/deploy.sh rollback   # back one release
+./deploy/deploy.sh status
+./deploy/deploy.sh logs
 ```
 
-#### What the script does:
-
-1. Commits current changes with timestamp
-2. Determines version number (using git tags)
-3. Builds Linux AMD64 binary with version info
-4. Syncs binary and migrations to server via SCP
-5. Creates/updates PM2 configuration
-6. Restarts the service using PM2
-7. Creates git tag for the version
-8. Displays useful management commands
-
-#### Server Configuration
-
-The service runs on port **3010** (configured in `app-pm2.json`).
-
-Files deployed to server:
-- Binary: `/home/foundry/goliath/goliath-backend`
-- Migrations: `/home/foundry/goliath/migrations/`
-- PM2 config: `/home/foundry/goliath/app-pm2.json`
-- Logs: `/home/foundry/goliath/logs/`
-
-### Server Management
-
-```bash
-# Check service status
-ssh foundry@foundry.owlbeardm.com 'pm2 status'
-
-# View logs
-ssh foundry@foundry.owlbeardm.com 'pm2 logs goliath-backend'
-
-# Restart service
-ssh foundry@foundry.owlbeardm.com 'pm2 restart goliath-backend'
-
-# Stop service
-ssh foundry@foundry.owlbeardm.com 'pm2 stop goliath-backend'
-```
+Server state lives in `~/goliath/shared/`: `.env` and `data/` (`goliath.db` and
+`goliath-firebase.json`). They survive releases and rollbacks.
 
 ## Environment Variables
 
-- `PORT` - Server port (default: 8080, production: 3010)
+- `PORT` - Server port (default: 8080, production: 3010). Listens on 127.0.0.1 only.
+- `DB_PATH` - SQLite file (default: `data/goliath.db`)
+- `FIREBASE_CREDENTIALS` - Firebase service account JSON (default: `data/goliath-firebase.json`)
+- `GIN_MODE` - set to `release` in production
+
+See `.env.example`.
 
 ## Database
 
-The application uses SQLite3 with automatic migrations. Database file: `goliath.db`
+The application uses SQLite3 with automatic migrations. Database file: `data/goliath.db`
 
 ### Migrations
 
@@ -109,8 +69,8 @@ goliath-backend/
 ├── handlers/            # HTTP handlers
 ├── middleware/          # HTTP middleware (CORS, JWT, etc.)
 ├── migrations/          # SQL migration files
-├── release.sh           # Deployment script
-└── app-pm2.json         # PM2 process configuration
+├── deploy/              # Deploy script and config (owl procedure)
+└── .env.example         # Template for the server .env
 ```
 
 ## API Endpoints

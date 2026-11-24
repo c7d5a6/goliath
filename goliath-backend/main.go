@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -31,15 +32,19 @@ func main() {
 
 // run wires dependencies and serves until shutdown, so deferred cleanup always runs.
 func run() error {
-	// Initialize database
-	db, err := InitDB("./goliath.db")
+	// Initialize database. State lives under data/, which the deploy keeps between releases.
+	dbPath := envOr("DB_PATH", "data/goliath.db")
+	if err := os.MkdirAll(filepath.Dir(dbPath), 0o750); err != nil {
+		return fmt.Errorf("create data directory: %w", err)
+	}
+	db, err := InitDB(dbPath)
 	if err != nil {
 		return fmt.Errorf("initialize database: %w", err)
 	}
 	defer db.Close()
 
 	// Initialize Firebase
-	opt := option.WithCredentialsFile("./goliath-firebase.json")
+	opt := option.WithCredentialsFile(envOr("FIREBASE_CREDENTIALS", "data/goliath-firebase.json"))
 	app, err := firebase.NewApp(context.Background(), nil, opt)
 	if err != nil {
 		return fmt.Errorf("initialize Firebase app: %w", err)
@@ -102,7 +107,10 @@ func run() error {
 	// Required because all repository operations now require a transaction
 	r.Use(middleware.Transaction(db))
 
-	// Health check endpoint (public, no auth required)
+	// Health check endpoints (public, no auth required).
+	r.GET("/healthz", func(c *gin.Context) {
+		c.JSON(200, gin.H{"status": "ok"})
+	})
 	r.GET("/hello", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"message": "hello",
@@ -172,16 +180,20 @@ func run() error {
 		admin.GET("/users", userHandlers.GetUsers)
 	}
 
-	return serve(r, os.Getenv("PORT"))
+	return serve(r, envOr("PORT", "8080"))
+}
+
+// envOr returns the environment variable key, or fallback when it is unset or empty.
+func envOr(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
 }
 
 // serve runs the router until SIGINT or SIGTERM, then drains in-flight requests.
 // It listens on loopback only: the reverse proxy is the sole public entry point.
 func serve(handler http.Handler, port string) error {
-	if port == "" {
-		port = "8080"
-	}
-
 	srv := &http.Server{
 		Addr:              "127.0.0.1:" + port,
 		Handler:           handler,

@@ -7,3 +7,6 @@ goliath-backend/goliath
 goliath-backend/goliath-?*-firebase*.json
 
 goliath-backend/goliath-firebase.json
+
+goliath-backend/data/
+goliath-backend/.env
