@@ -1,6 +1,6 @@
 module goliath
 
-go 1.24.0
+go 1.27.4
 
 require (
 	firebase.google.com/go/v4 v4.18.0

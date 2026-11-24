@@ -374,22 +374,22 @@ func (s *ExerciseLogService) GetWorkoutIntensityData(ctx context.Context, userID
 			if usesRepsIntensity(ex.Type) && ex.MaxReps > 0 && reps > 0 {
 				intensity += float64(reps) / float64(ex.MaxReps) * 100
 				intensityCounts += 1
-				log.Printf("    Week %d: reps=%d, intensity=%.1f%%", weekOffset, reps, intensity)
+				log.Printf("    Week %d: reps=%.0f, intensity=%.1f%%", weekOffset, reps, intensity)
 			}
 			if usesTimeIntensity(ex.Type) && ex.MaxTime > 0 && time > 0 {
 				intensity += float64(time) / float64(ex.MaxTime) * 100
 				intensityCounts += 1
-				log.Printf("    Week %d: time=%d, intensity=%.1f%%", weekOffset, time, intensity)
+				log.Printf("    Week %d: time=%.0f, intensity=%.1f%%", weekOffset, time, intensity)
 			}
 			if usesWeightIntensity(ex.Type) && ex.MaxWeight > 0 && weight > 0 {
 				intensity += float64(weight) / float64(ex.MaxWeight) * 100
 				intensityCounts += 1
-				log.Printf("    Week %d: weight=%d, intensity=%.1f%%", weekOffset, weight, intensity)
+				log.Printf("    Week %d: weight=%.0f, intensity=%.1f%%", weekOffset, weight, intensity)
 			}
 			if usesRestIntensity(ex.Type) && ex.MinRestTime > 0 && rest > 0 {
 				intensity += (float64(ex.MinRestTime) / float64(rest)) * 100
 				intensityCounts += 1
-				log.Printf("    Week %d: rest=%d, minRest=%d, intensity=%.1f%%", weekOffset, rest, ex.MinRestTime, intensity)
+				log.Printf("    Week %d: rest=%.0f, minRest=%d, intensity=%.1f%%", weekOffset, rest, ex.MinRestTime, intensity)
 			}
 			if intensityCounts > 0 {
 				intensity /= float64(intensityCounts)
@@ -398,7 +398,7 @@ func (s *ExerciseLogService) GetWorkoutIntensityData(ctx context.Context, userID
 			weeklyData[exID][weekOffset] = append(weeklyData[exID][weekOffset], intensity)
 			weekCounts[weekOffset]++
 			logCount++
-			log.Printf("    Week %d: reps=%d, time=%d, intensity=%.1f%%", weekOffset, reps, time, intensity)
+			log.Printf("    Week %d: reps=%.0f, time=%.0f, intensity=%.1f%%", weekOffset, reps, time, intensity)
 		}
 		weekRows.Close()
 		log.Printf("  -> Found %d logs across weeks: %v", logCount, weekCounts)
